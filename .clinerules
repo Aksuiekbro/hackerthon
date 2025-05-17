@@ -1,0 +1,250 @@
+Absolutely, here’s an updated **hackathon project rulebook** for your stack — **FastAPI + Supabase + Next.js + TailwindCSS + shadcn/ui** — in the exact format you want, clear and copy-ready:
+
+---
+
+```markdown
+description: "Workflow and best practices for building an AI-powered video highlights web app using FastAPI, Supabase, Next.js, TailwindCSS, and shadcn/ui. Covers backend, DB, ML, modern React UI, authentication, and rapid hackathon deployment."
+author: "Grandmaster AI Assistant"
+version: "1.1"
+tags: ["fastapi", "supabase", "nextjs", "tailwindcss", "shadcn", "ui", "ml", "fullstack", "hackathon", "guide", "workflow", "ai"]
+globs: ["/backend/", "/frontend/", "/ml_core/", ".env", "requirements.txt", "docker-compose.yml"]
+```
+
+---
+
+# FastAPI + Supabase + Next.js + TailwindCSS + shadcn/ui for AI Video Highlights
+
+**Objective:**
+The canonical way to build a hackathon-ready, scalable, and beautiful AI-powered highlights app. Combines FastAPI backend, Supabase DB/auth, Next.js + TailwindCSS + shadcn/ui frontend, and a modular ML core. Optimized for speed, clear code, team onboarding, and a stunning demo.
+
+---
+
+## I. Prerequisites
+
+* **Python 3.10+**
+* **Node.js (LTS)**
+* **Supabase account** ([supabase.com](https://supabase.com))
+* **Git, Docker** (optional, but great for teamwork/devops)
+
+---
+
+## II. Project Structure
+
+```
+/backend
+    main.py
+    /api
+    /ml_core
+    /db
+    requirements.txt
+/frontend
+    package.json
+    tailwind.config.js
+    /src
+        /app
+        /components
+        /lib
+        /ui    # shadcn components live here
+.env
+```
+
+---
+
+## III. Backend: FastAPI + Supabase
+
+### 1. Init backend
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install fastapi uvicorn[standard] asyncpg sqlalchemy supabase openai
+```
+
+### 2. .env Example
+
+```
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:PORT/DB
+SUPABASE_URL=https://xyz.supabase.co
+SUPABASE_KEY=your_anon_or_service_role_key
+```
+
+### 3. Example FastAPI API (`backend/main.py`)
+
+```python
+from fastapi import FastAPI, UploadFile, File
+from backend.ml_core.highlight import extract_highlights
+from backend.db.video import save_video, get_highlights
+
+app = FastAPI()
+
+@app.post("/upload")
+async def upload_video(file: UploadFile = File(...)):
+    video_id = await save_video(file)
+    return {"video_id": video_id}
+
+@app.get("/highlights/{video_id}")
+async def get_video_highlights(video_id: str):
+    highlights = await get_highlights(video_id)
+    return highlights
+```
+
+---
+
+## IV. ML Core
+
+* Place all AI/video/audio code in `/backend/ml_core/`
+* Start with **mock functions**; swap in real ML as it’s ready
+* To use .ipynb for now: call with `subprocess` or export to `.py` when stable
+
+---
+
+## V. Frontend: Next.js + TailwindCSS + shadcn/ui
+
+### 1. Init Next.js + TailwindCSS
+
+```bash
+npx create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir
+cd frontend
+npx shadcn-ui@latest init
+npm install axios @supabase/supabase-js
+```
+
+### 2. Example API calls (`frontend/src/api.ts`)
+
+```ts
+import axios from "axios";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+export const uploadVideo = (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return axios.post(`${API_URL}/upload`, formData);
+};
+
+export const getHighlights = (video_id: string) =>
+  axios.get(`${API_URL}/highlights/${video_id}`);
+```
+
+### 3. Supabase Auth Example
+
+* In `frontend/src/lib/supabase.ts`:
+
+```ts
+import { createClient } from "@supabase/supabase-js";
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+```
+
+* See [Supabase + Next.js quickstart](https://supabase.com/docs/guides/auth/quickstarts/nextjs) for login.
+
+### 4. UI Structure (w/ shadcn/ui)
+
+* Use shadcn/ui components for all inputs, buttons, modals, cards, etc.
+* Examples:
+
+```tsx
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+export function VideoUpload() {
+  // ...file upload logic
+  return (
+    <Card>
+      <CardContent>
+        <h2 className="text-xl font-semibold mb-2">Upload Your Video</h2>
+        {/* shadcn Button */}
+        <Button>Choose File</Button>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+* TailwindCSS powers layout/styling — shadcn/ui handles beautiful, production-ready components with full customization.
+
+---
+
+## VI. Supabase Usage
+
+* Store user sessions and metadata (videos, highlights) in Supabase
+* Use dashboard for quick data checks
+
+---
+
+## VII. Deployment & Local Dev
+
+* **Backend:**
+  `uvicorn backend.main:app --reload`
+* **Frontend:**
+  `cd frontend && npm run dev`
+* **Docker Compose:** (optional, for local fullstack)
+* **Production:**
+  Backend → Railway/Render,
+  Frontend → Vercel/Netlify.
+
+---
+
+## VIII. Hackathon Principles
+
+* **Mock what isn’t ready** (ML, DB, Auth)
+* **Code clear & modular:** API in FastAPI, UI in Next.js + shadcn/ui, ML in `/ml_core/`
+* **Use shadcn/ui everywhere for modern UI/UX**
+* **Keep secrets out of public repo**
+* **Update README as you go**
+
+---
+
+## IX. Grandmaster Guidance
+
+* Use this as source of truth
+* Write code snippets for endpoints, frontend, models
+* Recommend mocking for speed, SQLite for demos if PG is overkill
+* Link docs: [FastAPI](https://fastapi.tiangolo.com/), [Supabase](https://supabase.com/docs), [Next.js](https://nextjs.org/docs), [TailwindCSS](https://tailwindcss.com/docs), [shadcn/ui](https://ui.shadcn.com/docs)
+
+---
+
+## X. Flow Diagram (Mermaid)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant FE as Frontend (Next.js + shadcn/ui)
+    participant BE as Backend (FastAPI)
+    participant ML as ML Core
+    participant DB as Supabase DB
+
+    User->>FE: Uploads Video
+    FE->>BE: POST /upload
+    BE->>DB: Save video, get video_id
+    BE->>ML: Run extract_highlights(video)
+    ML-->>BE: Highlights (timestamps, text)
+    BE->>DB: Store highlights
+    BE-->>FE: Return video_id
+
+    FE->>BE: GET /highlights/{video_id}
+    BE->>DB: Fetch highlights
+    BE-->>FE: Return highlights
+    FE-->>User: Show highlights
+```
+
+---
+
+## XI. Security & Best Practices
+
+* **Never store secrets in frontend**
+* **Validate file uploads (type, size)**
+* **Async everywhere (FastAPI, DB, ML)**
+* **Swagger/Redoc auto-docs from FastAPI**
+* **Return JSON errors, handle all exceptions**
+
+---
+
+**Always clarify project status before deep dives.
+Ask for ML, auth, endpoints, or UI – get a step-by-step tailored for your vibe!**
+
+---
+
+If you want ready-to-go code snippets for any part (auth flow, API route, shadcn UI), just ask!

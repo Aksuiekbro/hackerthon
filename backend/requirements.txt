@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+asyncpg
+sqlalchemy
+supabase
+python-multipart
+# Add other dependencies as needed, e.g., for ML:
+# openai 
+# moviepy
+# Pillow (for image processing if needed)
+# numpy
+# pandas
