@@ -478,7 +478,8 @@ def process_video_for_highlights(source, num_clips=5, output_dir=None, generate_
     os.makedirs(portrait_dir, exist_ok=True)
     
     logging.info(f"Processing video into up to {num_clips} highlight clips...")
-    video = VideoFileClip(video_path)
+    original_clip = VideoFileClip(video_path)
+    original_clip_duration = original_clip.duration
     results = []
     
     if not top:
@@ -487,8 +488,59 @@ def process_video_for_highlights(source, num_clips=5, output_dir=None, generate_
     for i, clip_data in enumerate(top, 1):
         logging.info(f"Creating highlight clip {i}/{len(top)} (Segment Start: {clip_data['start']:.2f}s, End: {clip_data['end']:.2f}s)...")
         logging.debug(f"Full data for clip {i}: {clip_data}")
-        # First extract the clip from the original video
-        sub = video.subclip(clip_data['start'], clip_data['end'])
+        
+        segment_start_time = clip_data['start']
+        raw_segment_end_time = clip_data['end'] # Original end time from transcription for logging
+
+        # Clamp segment_end_time to the original_clip_duration
+        clamped_segment_end_time = min(raw_segment_end_time, original_clip_duration)
+        
+        # Validate times:
+        # 1. Start time must be less than clamped end time.
+        # 2. Resulting duration must be at least 0.1 seconds.
+        if segment_start_time >= clamped_segment_end_time:
+            logging.warning(
+                f"Highlight {i}: Start time {segment_start_time:.2f}s is not before clamped end time {clamped_segment_end_time:.2f}s "
+                f"(original end: {raw_segment_end_time:.2f}s, video duration: {original_clip_duration:.2f}s). Skipping segment."
+            )
+            continue
+
+        current_segment_duration = clamped_segment_end_time - segment_start_time
+        if current_segment_duration < 0.1:  # Minimum duration threshold (e.g., 0.1 seconds)
+            logging.warning(
+                f"Highlight {i}: Clamped duration {current_segment_duration:.2f}s (start: {segment_start_time:.2f}s, "
+                f"clamped end: {clamped_segment_end_time:.2f}s, original end: {raw_segment_end_time:.2f}s, video duration: {original_clip_duration:.2f}s) "
+                f"is too short. Skipping segment."
+            )
+            continue
+        
+        # Assign the validated & clamped end time to segment_end_time for subsequent use by the rest of the loop
+        segment_end_time = clamped_segment_end_time
+        
+        # Log the actual times being used for the segment
+        if raw_segment_end_time != segment_end_time:
+            logging.info(f"Highlight {i}: Segment times used: start {segment_start_time:.2f}s, end {segment_end_time:.2f}s (original end: {raw_segment_end_time:.2f}s, video duration: {original_clip_duration:.2f}s). Clamping applied.")
+        else:
+            logging.debug(f"Highlight {i}: Segment times used: start {segment_start_time:.2f}s, end {segment_end_time:.2f}s (original times from transcription).")
+
+        # At this point, segment_start_time and segment_end_time (which is clamped_segment_end_time) are validated.
+        # All subclip operations must use these times with original_clip.
+        # For example, the existing subsequent code would be:
+        # portrait_subclip = original_clip.subclip(segment_start_time, segment_end_time)
+        # landscape_subclip = original_clip.subclip(segment_start_time, segment_end_time)
+        
+        # The original clamping logic (lines 495-498) and the comment at line 500 are now covered by the above.
+        if segment_start_time >= segment_end_time:
+            logging.warning(f"Invalid time range for clip {i} after clamping: Start {segment_start_time:.2f}s, End {segment_end_time:.2f}s. Original segment: {clip_data['start']:.2f}s - {clip_data['end']:.2f}s. Skipping this highlight.")
+            continue
+
+        # Additional check for very short clips (e.g., less than 10ms) that might cause issues or be meaningless
+        min_clip_duration = 0.01
+        if (segment_end_time - segment_start_time) < min_clip_duration:
+            logging.warning(f"Segment for clip {i} is too short ({segment_end_time - segment_start_time:.3f}s) after clamping: Start {segment_start_time:.2f}s, End {segment_end_time:.2f}s. Minimum duration is {min_clip_duration}s. Skipping this highlight.")
+            continue
+
+        sub = video.subclip(segment_start_time, segment_end_time)
         subs = [{'start':s['start']-clip_data['start'], 'end':s['end']-clip_data['start'], 'text':s['text']} \
                 for s in result['segments'] if s['start']>=clip_data['start'] and s['end']<=clip_data['end']]
         
