@@ -201,7 +201,7 @@ export function VideoInput({ formData, updateFormData }: VideoInputProps) {
         >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="upload">{t("wizard.upload")}</TabsTrigger>
-            <TabsTrigger value="url">{t("wizard.videoUrl", "Video URL")}</TabsTrigger>
+            <TabsTrigger value="url">{t("wizard.videoUrl")}</TabsTrigger>
           </TabsList>
           <TabsContent value="upload" className="pt-4">
             <div
