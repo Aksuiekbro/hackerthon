@@ -1,3 +1,8 @@
+Мы построили эту систему всего за 24 часа. Но при этом старались мыслить не как студенты, а как продуктовая команда. Всё, что вы видите — это результат сжатого, но очень креативного цикла: от идеи, до архитектуры, до запуска.
+Мы не просто хотели сделать AI — мы хотели сделать его полезным, понятным и визуально приятным.
+Вместо стандартных моделей мы использовали креативные подходы:
+например, для Motion AI — мы не натягивали нейросеть, а использовали интенсивность пикселей, frame differencing и шумовую фильтрацию для быстрого и точного определения экшена.
+Для Context AI — мы объединили аудиопики, ключевые слова и сцены, чтобы хайлайт был не случайным, а смысловым
 # AI-Powered Video Highlights Web App
 
 An AI-powered video highlights web app using FastAPI, Supabase, Next.js, TailwindCSS, and shadcn/ui. This project aims to provide a seamless experience for generating highlights from videos, leveraging a modern tech stack for scalability and a beautiful user interface.

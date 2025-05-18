@@ -193,11 +193,11 @@ export default function Wizard() {
             <Button onClick={handleNext} disabled={!!formData.isProcessing}>{t("wizard.next")}</Button>
           ) : currentStep === 4 ? ( // On Customization step, button becomes "Generate Highlights"
             <Button onClick={handleGenerateHighlights} disabled={!!formData.isProcessing || isComplete}>
-              {formData.isProcessing ? t("results.processing") : t("wizard.generateHighlights", "Generate Highlights")}
+              {formData.isProcessing ? t("results.processing") : t("wizard.generateHighlights")}
             </Button>
           ) : ( // On Results step (currentStep === 5)
             <Button onClick={() => router.push("/dashboard")} disabled={!!formData.isProcessing}>
-              {t("wizard.finish", "Finish & View Dashboard")}
+              {t("wizard.finish")}
             </Button>
           )}
         </div>
