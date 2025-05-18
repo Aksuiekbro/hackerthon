@@ -7,7 +7,7 @@ description: "Workflow and best practices for building an AI-powered video highl
 author: "Grandmaster AI Assistant"
 version: "1.1"
 tags: ["fastapi", "supabase", "nextjs", "tailwindcss", "shadcn", "ui", "ml", "fullstack", "hackathon", "guide", "workflow", "ai"]
-globs: ["/backend/", "/frontend/", "/ml_core/", ".env", "requirements.txt", "docker-compose.yml"]
+globs: ["/backend/", "/frontend/", ".env", "requirements.txt", "docker-compose.yml"]
 ```
 
 ---
@@ -35,6 +35,8 @@ The canonical way to build a hackathon-ready, scalable, and beautiful AI-powered
     main.py
     /api
     /ml_core
+    /motion_model
+    /text_model
     /db
     requirements.txt
 /frontend
@@ -190,7 +192,7 @@ export function VideoUpload() {
 ## VIII. Hackathon Principles
 
 * **Mock what isn’t ready** (ML, DB, Auth)
-* **Code clear & modular:** API in FastAPI, UI in Next.js + shadcn/ui, ML in `/ml_core/`
+* **Code clear & modular:** API in FastAPI, UI in Next.js + shadcn/ui, ML components within `/backend/` (e.g., `/backend/ml_core/`, `/backend/motion_model/`, `/backend/text_model/`)
 * **Use shadcn/ui everywhere for modern UI/UX**
 * **Keep secrets out of public repo**
 * **Update README as you go**

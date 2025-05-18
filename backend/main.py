@@ -132,7 +132,7 @@ async def process_motion_video(request: MotionRequest):
 
     # Path to the motion processor script
     # Assuming motion_model is at the project root, and this main.py is in backend/
-    absolute_script_path = project_root / "motion_model" / "motion_processor.py"
+    absolute_script_path = project_root / "backend" / "motion_model" / "motion_processor.py"
 
     input_source_for_script = None
     if request.video_url:
@@ -212,7 +212,7 @@ async def process_text_video(request: TextProcessRequest):
     job_id = str(uuid.uuid4())
     
     project_root = Path(__file__).resolve().parent.parent
-    absolute_script_path = project_root / "text_model" / "process_shorts.py"
+    absolute_script_path = project_root / "backend" / "text_model" / "process_shorts.py"
     
     # absolute_output_dir is derived from project_root, consistent with motion model
     # TEXT_OUTPUTS_BASE_DIR is effectively project_root / "outputs" / "text_model_outputs"
