@@ -8,14 +8,14 @@ import { MoonIcon, SunIcon, Globe, User } from "lucide-react"
 import ActualNextThemes from "next-themes" // Assuming next-themes default exports an object
 import { useLanguage } from "./language-provider"
 import { useEffect, useState } from "react"
-// import { useAuth } from "@/hooks/use-auth"
+// // import { useAuth } from "@/hooks/use-auth"
 
 export default function Header() {
   // Assuming useTheme is a property on the default export
   const { setTheme } = ActualNextThemes.useTheme()
   const { language, setLanguage, t } = useLanguage()
   const pathname = usePathname()
-  // const { user, signOut } = useAuth()
+  // // const { user, signOut } = useAuth()
   const user = null; // Temporarily set user to null
   const signOut = () => {}; // Temporarily set signOut to a no-op
   const [mounted, setMounted] = useState(false)

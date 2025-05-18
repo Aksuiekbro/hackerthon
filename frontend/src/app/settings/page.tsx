@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { useAuth } from "@/hooks/use-auth"
+// import { useAuth } from "@/hooks/use-auth"
 import { useLanguage } from "@/components/language-provider"
 import { useTheme } from "next-themes"
 import { Loader2, Save } from "lucide-react"
@@ -27,7 +27,7 @@ import {
 } from "@/types/wizard"
 
 export default function SettingsPage() {
-  const { user, loading } = useAuth()
+  // const { user, loading } = useAuth()
   // const user = null; // Temporarily set user to null
   // const loading = false; // Temporarily set loading to false
   const { language, setLanguage, t } = useLanguage()
@@ -42,13 +42,13 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login?redirect=/settings")
-    } else if (user) {
-      setName(user.name ?? '')
-      setEmail(user.email ?? '')
-    }
-  }, [user, loading, router])
+    // if (!loading && !user) {
+    //   router.push("/login?redirect=/settings")
+    // } else if (user) {
+    //   setName(user.name ?? '')
+    //   setEmail(user.email ?? '')
+    // }
+  }, [router])
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,17 +70,17 @@ export default function SettingsPage() {
     setIsSaving(false)
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    )
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+  //       <Loader2 className="h-10 w-10 animate-spin text-primary" />
+  //     </div>
+  //   )
+  // }
 
-  if (!user) {
-    return null
-  }
+  // if (!user) {
+  //   return null
+  // }
 
   return (
     <div className="container py-8">

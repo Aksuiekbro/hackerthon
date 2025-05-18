@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-// import { useAuth } from "@/hooks/use-auth"
+// // import { useAuth } from "@/hooks/use-auth"
 import { useLanguage } from "@/components/language-provider"
 import { Download, Eye, Trash2, Loader2, Plus, Video } from "lucide-react"
 import Link from "next/link"
@@ -22,7 +22,7 @@ type Project = {
 }
 
 export default function DashboardPage() {
-  // const { user, loading } = useAuth()
+  // // const { user, loading } = useAuth()
   const user = {}; // Temporarily set user to an empty object to allow rendering
   const loading = false; // Temporarily set loading to false
   const router = useRouter()
