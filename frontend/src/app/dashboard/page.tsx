@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 // // import { useAuth } from "@/hooks/use-auth"
-import { useLanguage } from '@/components/language-provider'
+import { useLanguage } from "@/components/language-provider"
 import { Download, Eye, Trash2, Loader2, Plus, Video } from "lucide-react"
 import Link from "next/link"
 import type { ModelType, AspectRatio, Duration } from "@/types/wizard"
