@@ -27,7 +27,7 @@ export default function SettingsPage() {
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [defaultModel, setDefaultModel] = useState<ModelType>("context")
+  const [defaultModel, setDefaultModel] = useState<ModelType>("text")
   const [defaultAspect, setDefaultAspect] = useState<AspectRatio>("9:16")
   const [defaultDuration, setDefaultDuration] = useState<Duration>("15s")
   const [isSaving, setIsSaving] = useState(false)
