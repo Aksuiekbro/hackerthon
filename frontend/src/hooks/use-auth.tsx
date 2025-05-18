@@ -5,8 +5,8 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useLocalStorage } from "./use-local-storage"
-import { supabase } from "@/lib/supabase"
-import { User as SupabaseUser } from "@supabase/supabase-js";
+import { supabase } from '@/lib/supabase'; // Corrected to use standard Next.js path alias @/lib/supabase
+import { User as SupabaseUser, AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 export interface User {
  id: string;
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       const currentUser = session?.user;
       if (currentUser) {
         // Critically ensure that setUser is called with the output of mapSupabaseUser(currentUser).
