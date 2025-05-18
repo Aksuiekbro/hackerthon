@@ -1,151 +1,100 @@
-"use client";
+"use client"
 
-import { useState, ChangeEvent, FormEvent } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from "next/link"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { useLanguage } from "@/components/language-provider"
+import { UploadCloud, Wand2, Video, Download, ChevronRight } from "lucide-react"
 
-// Define a type for the highlight structure
-interface Highlight {
-  timestamp_start: string;
-  timestamp_end: string;
-  caption: string;
-}
-
-// Define a type for the API response
-interface ApiResponse {
-  video_id: string;
-  status: string;
-  highlights: Highlight[];
-  summary?: string; // Optional summary
-}
-
-export default function HomePage() {
-  const [file, setFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
-
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setFile(event.target.files[0]);
-      setApiResponse(null); // Reset previous results
-      setError(null); // Reset previous errors
-    }
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!file) {
-      setError("Please select a video file to upload.");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setApiResponse(null);
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    // Determine API URL (replace with your actual backend URL if different)
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/upload";
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        body: formData,
-        // Note: Do not set 'Content-Type' header when using FormData with fetch,
-        // the browser will set it correctly with the boundary.
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: "Unknown error occurred" }));
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-      }
-
-      const data: ApiResponse = await response.json();
-      setApiResponse(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to upload video or parse response.");
-      console.error("Upload error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+export default function Home() {
+  const { t } = useLanguage()
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-zinc-900">
-      <Card className="w-full max-w-lg shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center text-zinc-800 dark:text-zinc-100">
-            AI Video Highlights
-          </CardTitle>
-          <CardDescription className="text-center text-zinc-600 dark:text-zinc-400">
-            Upload your video to get AI-generated highlights.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
+        <div className="container px-4 md:px-6">
+          <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:grid-cols-2">
+            <div className="flex flex-col justify-center space-y-4">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">{t("home.title")}</h1>
+                <p className="max-w-[600px] text-muted-foreground md:text-xl">{t("home.subtitle")}</p>
+              </div>
+              <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <Button asChild size="lg">
+                  <Link href="/create">{t("home.getStarted")}</Link>
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <Link href="#how-it-works">{t("home.howItWorks")}</Link>
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="relative h-[350px] w-full md:h-[450px] lg:h-[500px]">
+                <Image
+                  src="/placeholder.svg?height=500&width=800"
+                  alt="Video highlights preview"
+                  fill
+                  className="object-cover rounded-lg"
+                  priority
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
-              <label htmlFor="video-upload" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Choose video file
-              </label>
-              <Input
-                id="video-upload"
-                type="file"
-                accept="video/*"
-                onChange={handleFileChange}
-                className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 dark:file:bg-zinc-700 dark:file:text-zinc-100 dark:hover:file:bg-zinc-600"
-                disabled={isLoading}
-              />
+              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">{t("home.howItWorks")}</h2>
+              <p className="max-w-[700px] text-muted-foreground md:text-xl">
+                Generate highlight videos in just a few simple steps
+              </p>
             </div>
-            <Button type="submit" className="w-full bg-zinc-800 hover:bg-zinc-700 text-white dark:bg-zinc-700 dark:hover:bg-zinc-600" disabled={isLoading}>
-              {isLoading ? "Uploading & Processing..." : "Get Highlights"}
+          </div>
+          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:grid-cols-4">
+            <div className="flex flex-col items-center space-y-2 rounded-lg p-4">
+              <div className="rounded-full bg-primary p-2 text-primary-foreground">
+                <UploadCloud className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold">Upload Video</h3>
+              <p className="text-center text-muted-foreground">Upload your video or paste a YouTube link</p>
+            </div>
+            <div className="flex flex-col items-center space-y-2 rounded-lg p-4">
+              <div className="rounded-full bg-primary p-2 text-primary-foreground">
+                <Wand2 className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold">Choose AI Model</h3>
+              <p className="text-center text-muted-foreground">Select between Context AI or Motion AI</p>
+            </div>
+            <div className="flex flex-col items-center space-y-2 rounded-lg p-4">
+              <div className="rounded-full bg-primary p-2 text-primary-foreground">
+                <Video className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold">Customize</h3>
+              <p className="text-center text-muted-foreground">Choose aspect ratio, duration, and more</p>
+            </div>
+            <div className="flex flex-col items-center space-y-2 rounded-lg p-4">
+              <div className="rounded-full bg-primary p-2 text-primary-foreground">
+                <Download className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold">Get Results</h3>
+              <p className="text-center text-muted-foreground">
+                Download your highlight video with description and hashtags
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-center">
+            <Button asChild size="lg">
+              <Link href="/create">
+                {t("home.getStarted")}
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
-          </form>
-
-          {error && (
-            <Alert variant="destructive" className="mt-6">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {apiResponse && (
-            <div className="mt-8 space-y-4">
-              <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">
-                Processed Video: {apiResponse.video_id}
-              </h3>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">Status: {apiResponse.status}</p>
-              
-              {apiResponse.summary && (
-                <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-md">
-                  <h4 className="font-semibold text-zinc-700 dark:text-zinc-200">Summary:</h4>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">{apiResponse.summary}</p>
-                </div>
-              )}
-
-              <h4 className="font-semibold text-zinc-700 dark:text-zinc-200">Highlights:</h4>
-              {apiResponse.highlights.length > 0 ? (
-                <ul className="space-y-3">
-                  {apiResponse.highlights.map((highlight, index) => (
-                    <li key={index} className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-md shadow-sm">
-                      <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                        {highlight.timestamp_start} - {highlight.timestamp_end}
-                      </p>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">{highlight.caption}</p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">No highlights were extracted.</p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </main>
-  );
+          </div>
+        </div>
+      </section>
+    </div>
+  )
 }
