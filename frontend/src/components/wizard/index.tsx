@@ -82,7 +82,7 @@ export default function Wizard() {
   }
 
   return (
-    <div className="container max-w-4xl py-8">
+    <div className="container w-full max-w-none py-8">
       <Steps currentStep={currentStep} />
 
       <div className="mt-8 rounded-lg border bg-card p-6 shadow-sm">
