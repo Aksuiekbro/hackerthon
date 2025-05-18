@@ -22,7 +22,8 @@ origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://hackerthon-3nd7wym8p-bingcha.vercel.app", # Add Vercel frontend URL
+    "https://hackerthon-3nd7wym8p-bingcha.vercel.app",
+    "https://hackerthon-psi.vercel.app", # Add new Vercel frontend URL
 ]
 
 app.add_middleware(
