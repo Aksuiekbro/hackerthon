@@ -184,7 +184,8 @@ export function VideoUpload() {
   `cd frontend && npm run dev`
 * **Docker Compose:** (optional, for local fullstack)
 * **Production:**
-  Backend → Railway/Render,
+  Backend (OnRender/Railway) Start Command: `uvicorn backend.main:app --host 0.0.0.0`
+  (Port is typically set by the platform via the $PORT environment variable, which `backend/main.py` now handles.)
   Frontend → Vercel/Netlify.
 
 ---

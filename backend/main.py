@@ -52,6 +52,10 @@ app.mount("/static/outputs", StaticFiles(directory=outputs_dir), name="static_ou
 async def read_root():
     return {"message": "Welcome to the AI Video Highlights API"}
 
+@app.get("/api/ping")
+async def ping():
+    return {"status": "ok", "message": "pong"}
+
 @app.post("/upload/video/")
 async def upload_video_file(file: UploadFile = File(...)):
     if not file.filename:
@@ -402,4 +406,6 @@ app.include_router(upload_router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os # Add os import
+    port = int(os.environ.get("PORT", 8000)) # Get port from environment or default to 8000
+    uvicorn.run(app, host="0.0.0.0", port=port)
