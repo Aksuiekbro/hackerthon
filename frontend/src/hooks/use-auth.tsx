@@ -5,32 +5,42 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useLocalStorage } from "./use-local-storage"
+import { supabase } from "@/lib/supabase"
+import { User as SupabaseUser } from "@supabase/supabase-js";
 
-type User = {
-  id: string
-  name: string
-  email: string
-  image?: string
+export interface User {
+ id: string;
+ email: string; // Must be a non-nullable string
+ name: string;  // Must be a non-nullable string
 }
 
 /**
- * Utility to map a Supabase user object to our local User interface,
- * guaranteeing that name and email are always non-null strings.
- * If name is missing, falls back to email or "Anonymous User".
- * If email is missing, falls back to "unknown@example.com".
- */
-function mapSupabaseUser(currentUser: any): User {
-  return {
-    id: currentUser.id,
-    name:
-      currentUser.user_metadata?.name ||
-      currentUser.user_metadata?.full_name ||
-      currentUser.user_metadata?.display_name ||
-      currentUser.email ||
-      "Anonymous User",
-    email: currentUser.email || "unknown@example.com",
-    image: currentUser.user_metadata?.avatar_url || undefined,
+* Utility to map a Supabase user object to our local User interface,
+* guaranteeing that name and email are always non-null strings.
+* If name is missing, falls back to email or "Anonymous User".
+* If email is missing, falls back to "unknown@example.com".
+*/
+function mapSupabaseUser(supabaseUser: SupabaseUser): User {
+  const emailString = supabaseUser.email ?? 'unknown@example.com';
+  let nameString = 'Anonymous User'; // Default
+
+  if (supabaseUser.user_metadata) { // Check if user_metadata itself exists
+    nameString =
+      supabaseUser.user_metadata.name ||
+      supabaseUser.user_metadata.full_name ||
+      emailString; // Fallback to email if metadata names are missing
+  } else {
+    nameString = emailString; // Fallback to email if no user_metadata
   }
+  // Final fallback if email was also somehow empty (though emailString should prevent this)
+  if (!nameString) nameString = 'Anonymous User';
+
+
+  return {
+    id: supabaseUser.id,
+    email: emailString,
+    name: nameString, // Ensure this is definitively a string
+  };
 }
 
 type AuthContextType = {
@@ -46,7 +56,6 @@ const MOCK_USER: User = {
   id: "user-1",
   name: "Demo User",
   email: "user@example.com",
-  image: "/placeholder.svg?height=32&width=32",
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -57,12 +66,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Simulate auth state initialization
-    // If using Supabase, you would do:
-    // const { data: { user: currentUser } } = await supabase.auth.getUser();
-    // if (currentUser) setUser(mapSupabaseUser(currentUser));
-    setLoading(false)
-  }, [])
+    setLoading(true);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentUser = session?.user;
+      if (currentUser) {
+        // Critically ensure that setUser is called with the output of mapSupabaseUser(currentUser).
+        // Using 'currentUser as any' as per instruction's example,
+        // consider using 'currentUser as SupabaseUser' with the import above for better type safety.
+        setUser(mapSupabaseUser(currentUser as SupabaseUser));
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    // Clean up the subscription when the component unmounts
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []); // Empty dependency array ensures this effect runs only once on mount and cleans up on unmount.
 
   const signIn = async (email: string, password: string) => {
     setLoading(true)
