@@ -107,6 +107,11 @@ class TextProcessRequest(BaseModel):
         if bool(url) == bool(path):
             raise ValueError("Exactly one of 'video_url' or 'server_file_path' must be provided.")
         return values
+# Pydantic model for transcription request
+class TranscriptionRequest(BaseModel):
+    server_video_file_path: str # Path relative to project root (e.g., "outputs/motion_model_outputs/job_id/video.mp4")
+    output_format: Literal["txt", "srt", "vtt", "tsv", "json"] = "txt"
+    model_name: Optional[str] = "base" # e.g., tiny, base, small, medium, large
 
 # Base directory for text model outputs (relative to this file: backend/main.py)
 # This constant isn't strictly used at module level in the provided snippet,
@@ -307,6 +312,87 @@ async def process_text_video(request: TextProcessRequest):
         "stdout": result.stdout # For debugging
     }
 
+@app.post("/transcribe/video/")
+async def transcribe_video_endpoint(request: TranscriptionRequest):
+    project_root = Path(__file__).resolve().parent.parent
+    absolute_video_path = project_root / request.server_video_file_path
+
+    if not absolute_video_path.is_file():
+        raise HTTPException(status_code=404, detail=f"Video file not found: {request.server_video_file_path}")
+
+    # Output directory for the transcript will be the same as the video's directory
+    transcript_output_dir = absolute_video_path.parent
+    # The script itself will create the output dir if it doesn't exist, based on its logic.
+
+    transcribe_script_path = project_root / "backend" / "ml_core" / "transcribe_video.py"
+    if not transcribe_script_path.is_file():
+        raise HTTPException(status_code=500, detail="Transcription script not found.")
+
+    command = [
+        PYTHON_EXECUTABLE,
+        str(transcribe_script_path),
+        str(absolute_video_path),
+        str(transcript_output_dir), # Script will save file here
+        "--output_format", request.output_format,
+        "--model_name", request.model_name or "base" # Pass model_name or default
+    ]
+
+    try:
+        # Transcription can be lengthy
+        result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=1800) # 30 min timeout
+        
+        output_lines = result.stdout.strip().split('\n')
+        transcript_file_path_str = None
+        # Try to find the path from "Saving transcript to: <path>"
+        for line in reversed(output_lines):
+            if line.startswith("Saving transcript to: "):
+                transcript_file_path_str = line.replace("Saving transcript to: ", "").strip()
+                break
+        
+        # Fallback: if not found, assume the script prints only the path as the last non-empty line
+        if not transcript_file_path_str:
+            for line in reversed(output_lines):
+                if line.strip(): # Check for non-empty line
+                    potential_path = Path(line.strip())
+                    # A basic check: if it's an absolute path and exists.
+                    # This is still a bit fragile. The script should ideally be more predictable.
+                    if potential_path.is_absolute() and potential_path.exists() and potential_path.is_file():
+                         # Check if it's within the expected output directory structure for safety
+                        if transcript_output_dir in potential_path.parents:
+                            transcript_file_path_str = str(potential_path)
+                            break
+                    # If it's not absolute, try resolving it against project_root (less likely for script output)
+                    elif not potential_path.is_absolute():
+                        resolved_potential_path = project_root / potential_path
+                        if resolved_potential_path.exists() and resolved_potential_path.is_file():
+                            if transcript_output_dir in resolved_potential_path.parents:
+                                transcript_file_path_str = str(resolved_potential_path)
+                                break
+        
+        if not transcript_file_path_str or not Path(transcript_file_path_str).is_file():
+            print(f"Transcription script stdout: {result.stdout}")
+            print(f"Transcription script stderr: {result.stderr}")
+            raise HTTPException(status_code=500, detail="Transcription completed but output path not found or file not created from stdout.")
+
+        # Make path relative to project root for the response
+        relative_transcript_path = Path(transcript_file_path_str).relative_to(project_root)
+
+    except subprocess.CalledProcessError as e:
+        error_detail = f"Transcription script failed. STDERR: {e.stderr}"
+        if e.stdout: error_detail += f" STDOUT: {e.stdout}"
+        raise HTTPException(status_code=500, detail=error_detail)
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Transcription timed out after 30 minutes.")
+    except Exception as e: # Catch any other unexpected errors
+        print(f"An unexpected error occurred during transcription: {str(e)}")
+        print(f"Command: {' '.join(map(str, command))}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred during transcription: {str(e)}")
+    
+    return {
+        "message": "Transcription successful",
+        "transcript_file_path": str(relative_transcript_path),
+        "stdout_preview": result.stdout[:500] # For debugging, preview of stdout
+    }
 # API routers
 from api.upload import router as upload_router
 # from .api import highlights_router # Example for future highlights-specific endpoints

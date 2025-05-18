@@ -52,3 +52,21 @@ export const uploadVideoFileAPI = async (file: File): Promise<FileUploadResponse
     });
     return response.data;
 };
+export interface TranscriptionApiResponse {
+    message: string;
+    transcript_file_path: string; // Server-relative path, e.g., "outputs/job_id/video.txt"
+    stdout?: string;
+}
+
+export const callTranscribeVideoAPI = async (
+    serverVideoFilePath: string, // Path like "outputs/motion_model_outputs/job_id/video.mp4"
+    outputFormat: "txt" | "srt" | "vtt" | "tsv" | "json" = "txt",
+    modelName: string = "base"
+): Promise<TranscriptionApiResponse> => {
+    const response = await axios.post(`${API_BASE_URL}/transcribe/video/`, {
+        server_video_file_path: serverVideoFilePath,
+        output_format: outputFormat,
+        model_name: modelName,
+    });
+    return response.data;
+};

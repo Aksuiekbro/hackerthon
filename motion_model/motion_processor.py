@@ -109,8 +109,8 @@ def create_highlight_video(video_path, intervals):
     base_clip = VideoFileClip(video_path)
     video_duration = base_clip.duration
     min_total_duration = 0.1 * video_duration
-    min_clip_duration = 3
-    max_clip_duration = 23
+    min_clip_duration = 1  # Lowered minimum
+    max_clip_duration = 25 # Optionally increased maximum
 
     # Объединяем интервалы
     merged_intervals = merge_intervals(intervals)

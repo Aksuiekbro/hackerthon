@@ -1,0 +1,52 @@
+[
+  {
+    "id": 0,
+    "seek": 0,
+    "start": 0.0,
+    "end": 3.4,
+    "text": " Если во время первой партии я не особо знал кто-то вы годом чес.",
+    "tokens": [
+      50364,
+      12412,
+      7900,
+      12039,
+      11922,
+      1700,
+      11813,
+      3396,
+      435,
+      2552,
+      1725,
+      21244,
+      354,
+      15309,
+      1218,
+      12278,
+      12,
+      860,
+      2840,
+      9182,
+      1253,
+      1358,
+      2292,
+      13,
+      50534
+    ],
+    "temperature": 0.0,
+    "avg_logprob": -0.3630823355454665,
+    "compression_ratio": 1.2391304347826086,
+    "no_speech_prob": 0.043805141001939774,
+    "score": 1.5,
+    "hashtags": [
+      "#если",
+      "#годом",
+      "#первой",
+      "#особо",
+      "#время",
+      "#знал",
+      "#партии"
+    ],
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/landscape/highlight_1.mp4",
+    "portrait_file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/portrait/highlight_1.mp4"
+  }
+]

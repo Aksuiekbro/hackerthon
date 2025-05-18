@@ -1,10 +1,12 @@
 "use client"
 
+import { useState } from "react" // Added import
 import { useLanguage } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Download, AlertCircle } from "lucide-react"
 import { WizardFormData } from "@/types/wizard" // Adjusted import path
+import { callTranscribeVideoAPI } from "@/api/processing" // Added import
 
 interface ResultsStepProps {
   formData: WizardFormData
@@ -13,6 +15,33 @@ interface ResultsStepProps {
 export function ResultsStep({ formData }: ResultsStepProps) {
   const { t } = useLanguage()
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+  const [transcribingVideoPath, setTranscribingVideoPath] = useState<string | null>(null)
+  const [transcriptResults, setTranscriptResults] = useState<Record<string, { path?: string; error?: string }>>({})
+
+  const handleStartTranscription = async (videoFilePath: string, outputFormat: "txt" | "srt" = "txt") => {
+    setTranscribingVideoPath(videoFilePath)
+    setTranscriptResults(prev => ({ ...prev, [videoFilePath]: { path: undefined, error: undefined } })) // Clear previous for this file
+
+    try {
+      // The serverVideoFilePath for callTranscribeVideoAPI should be relative to project root,
+      // which formData.generatedFilePaths already are (e.g., "outputs/motion_model_outputs/job_id/video.mp4")
+      const response = await callTranscribeVideoAPI(videoFilePath, outputFormat)
+      setTranscriptResults(prev => ({
+        ...prev,
+        [videoFilePath]: { path: response.transcript_file_path, error: undefined },
+      }))
+    } catch (error: any) {
+      console.error(`Transcription failed for ${videoFilePath}:`, error)
+      const errorMessage = error.response?.data?.detail || error.message || "Transcription failed."
+      setTranscriptResults(prev => ({
+        ...prev,
+        [videoFilePath]: { path: undefined, error: errorMessage },
+      }))
+    } finally {
+      setTranscribingVideoPath(null)
+    }
+  }
 
   if (formData.isProcessing) {
     return (
@@ -58,9 +87,10 @@ export function ResultsStep({ formData }: ResultsStepProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {formData.generatedFilePaths.map((filePath) => {
-          const fileUrl = `${API_URL}/static/outputs/${filePath}`
+          const fileUrl = `${API_URL}/static/${filePath}` // filePath is already relative to project root like "outputs/..."
           const fileName = filePath.substring(filePath.lastIndexOf("/") + 1)
           const extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase()
+          const currentTranscript = transcriptResults[filePath]
 
           if (["mp4", "mov", "webm", "ogv"].includes(extension)) {
             return (
@@ -71,11 +101,37 @@ export function ResultsStep({ formData }: ResultsStepProps) {
                     Your browser does not support the video tag.
                   </video>
                 </div>
-                <Button asChild variant="outline" size="sm" className="w-full">
-                  <a href={fileUrl} download={fileName}>
-                    <Download className="mr-2 h-4 w-4" /> Download Video
+                <div className="flex flex-col sm:flex-row justify-between items-center mt-2 space-y-2 sm:space-y-0 sm:space-x-2">
+                  <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
+                    <a href={fileUrl} download={fileName} className="flex items-center justify-center">
+                      <Download className="mr-2 h-4 w-4" /> Download
+                    </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStartTranscription(filePath)}
+                    disabled={transcribingVideoPath === filePath}
+                    className="w-full sm:w-auto"
+                  >
+                    {transcribingVideoPath === filePath ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    {transcribingVideoPath === filePath ? "Transcribing..." : "Transcribe (TXT)"}
+                  </Button>
+                </div>
+                {currentTranscript?.path && (
+                  <a
+                    href={`${API_URL}/static/${currentTranscript.path}`} // transcript_file_path is relative to project root
+                    download={currentTranscript.path.split("/").pop()}
+                    className="text-xs text-green-600 hover:underline block mt-2 text-center sm:text-left"
+                  >
+                    Download Transcript (.txt)
                   </a>
-                </Button>
+                )}
+                {currentTranscript?.error && (
+                  <p className="text-xs text-red-500 mt-2 text-center sm:text-left">Error: {currentTranscript.error}</p>
+                )}
               </div>
             )
           } else if (["jpg", "jpeg", "png", "gif", "webp"].includes(extension)) {

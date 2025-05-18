@@ -4,6 +4,7 @@ import sys
 import json
 import ssl
 import argparse
+import logging # Added
 import numpy as np
 import librosa
 import whisper
@@ -15,6 +16,13 @@ from scenedetect.detectors import ContentDetector
 from moviepy.editor import VideoFileClip, vfx
 from PIL import Image, ImageDraw, ImageFont
 
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO,  # Or logging.DEBUG for more verbosity
+    format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+    handlers=[logging.StreamHandler()] # Ensures logs go to stdout/stderr
+)
+
 # Fix SSL certificate verification issue on macOS
 try:
     # Set environment variables for SSL certificates
@@ -22,9 +30,9 @@ try:
     os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
     # Also use unverified context as a fallback
     ssl._create_default_https_context = ssl._create_unverified_context
-    print(f"Using SSL certificates from: {certifi.where()}")
+    logging.info(f"Using SSL certificates from: {certifi.where()}")
 except Exception as e:
-    print(f"Warning: Could not set SSL context: {e}")
+    logging.warning(f"Warning: Could not set SSL context: {e}")
 
 # Default settings (will be overridden by command-line arguments)
 OUTPUT_DIR = os.path.join(os.getcwd(), "highlight_clips")
@@ -45,10 +53,11 @@ BASE_DIR = os.getcwd()
 
 def download_from_url(url, output_dir=None):
     """Downloads a video from a URL using yt-dlp."""
+    logging.debug(f"Entering download_from_url with url: {url}, output_dir: {output_dir}")
     if output_dir is None:
         output_dir = BASE_DIR
     
-    print(f"Downloading video from URL: {url}")
+    logging.info(f"Downloading video from URL: {url}")
     
     # Set up yt-dlp options
     ydl_opts = {
@@ -66,30 +75,38 @@ def download_from_url(url, output_dir=None):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             output_path = ydl.prepare_filename(info)
+            logging.debug(f"Exiting download_from_url, returning: {output_path}")
             return output_path
     except Exception as e:
-        print(f"Error downloading video: {e}")
+        logging.error(f"Error downloading video: {e}")
+        logging.debug(f"Exiting download_from_url, returning: None")
         return None
 
 def detect_scenes(video_path):
     """Detects scene boundaries in a video file."""
+    logging.debug(f"Entering detect_scenes with video_path: {video_path}")
     try:
         video = open_video(video_path)
         scene_manager = SceneManager()
         scene_manager.add_detector(ContentDetector(threshold=30.0))
         scene_manager.detect_scenes(frame_source=video)
-        scenes = scene_manager.get_scene_list()
-        return [(s[0].get_seconds(), s[1].get_seconds()) for s in scenes]
+        scenes_list = scene_manager.get_scene_list()
+        scenes_data = [(s[0].get_seconds(), s[1].get_seconds()) for s in scenes_list]
+        logging.debug(f"Exiting detect_scenes, returning {len(scenes_data)} scenes")
+        return scenes_data
     except Exception as e:
-        print(f"Scene detection error: {e}")
+        logging.error(f"Scene detection error: {e}")
+        logging.debug(f"Exiting detect_scenes, returning empty list due to error")
         return []
 
 
 def get_audio_peaks(video_path):
     """Extracts audio peaks from a video file."""
+    logging.debug(f"Entering get_audio_peaks with video_path: {video_path}")
     temp_audio = os.path.join(BASE_DIR, "temp_audio.wav")
     try:
-        os.system(f"ffmpeg -i '{video_path}' -q:a 0 -map a '{temp_audio}' -y -loglevel quiet")
+        logging.debug(f"Attempting to extract audio to {temp_audio} using ffmpeg.")
+        os.system(f"ffmpeg -i '{video_path}' -q:a 0 -map a '{temp_audio}' -y -loglevel error") # Changed quiet to error
         y, sr = librosa.load(temp_audio, sr=None)
         energy = librosa.feature.rms(y=y)[0]
         peaks = librosa.util.peak_pick(
@@ -98,9 +115,12 @@ def get_audio_peaks(video_path):
             pre_avg=50, post_avg=50,
             delta=0.05, wait=10
         )
-        return [round(p * 512 / sr, 2) for p in peaks]
+        peak_times = [round(p * 512 / sr, 2) for p in peaks]
+        logging.debug(f"Exiting get_audio_peaks, returning {len(peak_times)} peaks")
+        return peak_times
     except Exception as e:
-        print(f"Audio peak extraction error: {e}")
+        logging.error(f"Audio peak extraction error: {e}")
+        logging.debug(f"Exiting get_audio_peaks, returning empty list due to error")
         return []
     finally:
         if os.path.exists(temp_audio):
@@ -109,6 +129,7 @@ def get_audio_peaks(video_path):
 
 def compute_score_enhanced(segment, peaks, keywords, scenes):
     """Scores a transcription segment for highlight selection."""
+    logging.debug(f"Entering compute_score_enhanced for segment: {segment.get('text', '')[:50]}...")
     score = 0
     start, end, text = segment['start'], segment['end'], segment['text']
     if any(start - 0.5 <= p <= end + 0.5 for p in peaks):
@@ -120,6 +141,7 @@ def compute_score_enhanced(segment, peaks, keywords, scenes):
     score += 0.5 if 3 <= duration <= 20 else -0.5 if duration < 3 or duration > 30 else 0
     if '?' in text or '!' in text:
         score += 0.5
+    logging.debug(f"Exiting compute_score_enhanced with score: {score}")
     return score
 
 
@@ -239,11 +261,20 @@ def convert_to_compatible_format(input_file, output_file=None):
         f"-y '{output_file}'"
     )
     
+    logging.debug(f"Entering convert_to_compatible_format for input: {input_file}, output: {output_file}")
+    logging.info(f"Attempting to convert {input_file} to compatible format at {output_file}")
     try:
-        os.system(ffmpeg_cmd)
-        return output_file if os.path.exists(output_file) else None
+        os.system(ffmpeg_cmd + " -loglevel error") # Added loglevel
+        result_path = output_file if os.path.exists(output_file) else None
+        if result_path:
+            logging.info(f"Successfully converted video to {result_path}")
+        else:
+            logging.error(f"Failed to convert video {input_file} to {output_file}")
+        logging.debug(f"Exiting convert_to_compatible_format, returning: {result_path}")
+        return result_path
     except Exception as e:
-        print(f"Error converting video: {e}")
+        logging.error(f"Error converting video {input_file}: {e}")
+        logging.debug(f"Exiting convert_to_compatible_format, returning: None due to error")
         return None
 
 
@@ -253,7 +284,7 @@ def crop_frame_to_aspect_ratio(frame_array, target_w, target_h):
     """
     img_h, img_w = frame_array.shape[:2]
     if img_h == 0 or img_w == 0:
-        print(f"Warning: Invalid input frame dimensions ({img_w}x{img_h}). Skipping frame.")
+        logging.warning(f"Invalid input frame dimensions ({img_w}x{img_h}). Skipping frame.")
         return None
 
     target_aspect = target_w / target_h
@@ -269,9 +300,10 @@ def crop_frame_to_aspect_ratio(frame_array, target_w, target_h):
         resized_h = int(img_h * scale_factor)
     
     if resized_w <= 0 or resized_h <= 0:
-        print(f"Warning: Invalid resize dimensions ({resized_w}x{resized_h}). Skipping frame.")
+        logging.warning(f"Invalid resize dimensions ({resized_w}x{resized_h}). Skipping frame.")
         return None
         
+    logging.debug(f"Resizing frame from {img_w}x{img_h} to {resized_w}x{resized_h}")
     resized_frame = cv2.resize(frame_array, (resized_w, resized_h), interpolation=cv2.INTER_AREA)
 
     crop_x = max(0, (resized_w - target_w) // 2)
@@ -289,9 +321,10 @@ def crop_frame_to_aspect_ratio(frame_array, target_w, target_h):
         
     return cropped_frame
 
-def extract_frames_from_highlights(video_path, highlights, output_dir, 
+def extract_frames_from_highlights(video_path, highlights, output_dir,
                                   frame_formats=["instagram", "landscape", "portrait"],
                                   frames_per_segment=3):
+    logging.debug(f"Entering extract_frames_from_highlights for {len(highlights)} highlights, output_dir: {output_dir}, formats: {frame_formats}")
     """
     Extract frames from highlight segments in various formats.
     
@@ -303,7 +336,8 @@ def extract_frames_from_highlights(video_path, highlights, output_dir,
         frames_per_segment: Number of frames to extract from each segment
     """
     if not highlights:
-        print("No highlights to extract frames from.")
+        logging.info("No highlights to extract frames from.")
+        logging.debug("Exiting extract_frames_from_highlights, no highlights provided.")
         return []
     
     # Create output directories for each format
@@ -313,12 +347,13 @@ def extract_frames_from_highlights(video_path, highlights, output_dir,
         os.makedirs(format_dir, exist_ok=True)
         frame_dirs[format_name] = format_dir
     
-    print(f"Extracting frames from {len(highlights)} highlight clips...")
+    logging.info(f"Extracting frames from {len(highlights)} highlight clips...")
     
     try:
         video = VideoFileClip(video_path)
     except Exception as e:
-        print(f"Error opening video for frame extraction: {e}")
+        logging.error(f"Error opening video for frame extraction: {e}")
+        logging.debug("Exiting extract_frames_from_highlights due to video open error.")
         return []
     
     extracted_frames = []
@@ -329,7 +364,7 @@ def extract_frames_from_highlights(video_path, highlights, output_dir,
         duration = end_time - start_time
         
         if duration <= 0:
-            print(f"Segment {i+1} has zero or negative duration. Skipping.")
+            logging.warning(f"Segment {i+1} has zero or negative duration ({duration:.2f}s). Skipping frame extraction for this segment.")
             continue
         
         # Calculate time points for frame extraction (evenly spaced)
@@ -363,10 +398,12 @@ def extract_frames_from_highlights(video_path, highlights, output_dir,
                     if processed_frame is not None:
                         # Save frame to file
                         output_path = os.path.join(
-                            frame_dirs[format_name], 
+                            frame_dirs[format_name],
                             f"highlight_{i+1:02d}_frame_{j+1:02d}.jpg"
                         )
+                        logging.debug(f"Attempting to save frame: {output_path}")
                         cv2.imwrite(output_path, processed_frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
+                        logging.debug(f"Successfully saved frame: {output_path}")
                         
                         # Add to extracted frames list
                         extracted_frames.append({
@@ -377,43 +414,57 @@ def extract_frames_from_highlights(video_path, highlights, output_dir,
                             "file": output_path
                         })
             except Exception as e:
-                print(f"Error extracting frame from segment {i+1} at time {time_point:.2f}s: {e}")
+                logging.error(f"Error extracting frame from segment {i+1} at time {time_point:.2f}s for format {format_name}: {e}")
     
     video.close()
     
-    print(f"Successfully extracted {len(extracted_frames)} frames in {len(frame_formats)} formats.")
+    logging.info(f"Successfully extracted {len(extracted_frames)} frames in {len(frame_formats)} formats.")
+    logging.debug(f"Exiting extract_frames_from_highlights, extracted {len(extracted_frames)} frames.")
     return extracted_frames
 
 def process_video_for_highlights(source, num_clips=5, output_dir=None, generate_both_formats=True, extract_frames=True):
     """Main pipeline: download/transcribe/process and save highlight clips."""
+    logging.debug(f"Entering process_video_for_highlights with source: {source}, num_clips: {num_clips}, output_dir: {output_dir}, generate_both: {generate_both_formats}, extract_frames: {extract_frames}")
     # Prepare video
     video_path = source
     if not os.path.exists(video_path):
+        logging.error(f"Video not found: {video_path}")
         raise FileNotFoundError(f"Video not found: {video_path}")
     
+    logging.info(f"Detecting scenes for {video_path}")
     scenes = detect_scenes(video_path)
+    logging.info(f"Extracting audio peaks for {video_path}")
     peaks = get_audio_peaks(video_path)
     
     # Transcription
-    print("Loading whisper model...")
+    logging.info("Loading whisper model (base)...")
     model = whisper.load_model("base")
-    print("Transcribing video...")
+    logging.info(f"Transcribing video: {video_path}")
     result = model.transcribe(video_path)
+    raw_segments = result.get("segments", [])
+    logging.info(f"Found {len(raw_segments)} raw segments initially from transcription.")
     
     keywords = ["главное","вопрос","важно","итог","ответ",
                 "ключевое","education","students","learning","school",
                 "ai", "developers", "artificial", "intelligence", "coding"]
     
     found = [k for k in keywords if k in result.get("text","").lower()]
-    data = []    
-    for seg in result.get("segments", []):
+    data = []
+    logging.info("Filtering and scoring segments...")
+    for seg_idx, seg in enumerate(raw_segments):
+        logging.debug(f"Processing raw segment {seg_idx + 1}/{len(raw_segments)}: Start: {seg.get('start', 0):.2f}s, End: {seg.get('end', 0):.2f}s, Text: '{seg.get('text', '')[:50]}...'")
         score = compute_score_enhanced(seg, peaks, keywords, scenes)
-        if score <= 0: continue
+        if score <= 0:
+            logging.debug(f"Segment {seg_idx + 1} (Start: {seg.get('start',0):.2f}s) failed filtering with score {score}.")
+            continue
+        logging.info(f"Segment {seg_idx + 1} (Start: {seg.get('start',0):.2f}s) passed filtering with score {score}.")
         hashtags = list({f"#{w.lower()}" for w in seg['text'].split() if w.isalpha() and len(w)>3} |
                         {f"#{k.lower()}" for k in found})
         data.append({**seg, 'score': score, 'hashtags': hashtags})
     
+    logging.info(f"Selected {len(data)} segments after scoring, sorting to get top {num_clips}.")
     top = sorted(data, key=lambda x: -x['score'])[:num_clips]
+    logging.info(f"Attempting to create highlight clips from {len(top)} candidate segments.")
     
     # Save clips
     if output_dir is None:
@@ -426,23 +477,29 @@ def process_video_for_highlights(source, num_clips=5, output_dir=None, generate_
     os.makedirs(landscape_dir, exist_ok=True)
     os.makedirs(portrait_dir, exist_ok=True)
     
-    print(f"Processing video into {num_clips} highlight clips...")
+    logging.info(f"Processing video into up to {num_clips} highlight clips...")
     video = VideoFileClip(video_path)
     results = []
     
-    for i, clip in enumerate(top, 1):
-        print(f"Creating highlight clip {i}/{num_clips}...")
+    if not top:
+        logging.warning("No segments selected as top candidates. No highlight clips will be generated.")
+
+    for i, clip_data in enumerate(top, 1):
+        logging.info(f"Creating highlight clip {i}/{len(top)} (Segment Start: {clip_data['start']:.2f}s, End: {clip_data['end']:.2f}s)...")
+        logging.debug(f"Full data for clip {i}: {clip_data}")
         # First extract the clip from the original video
-        sub = video.subclip(clip['start'], clip['end'])
-        subs = [{'start':s['start']-clip['start'], 'end':s['end']-clip['start'], 'text':s['text']} \
-                for s in result['segments'] if s['start']>=clip['start'] and s['end']<=clip['end']]
+        sub = video.subclip(clip_data['start'], clip_data['end'])
+        subs = [{'start':s['start']-clip_data['start'], 'end':s['end']-clip_data['start'], 'text':s['text']} \
+                for s in result['segments'] if s['start']>=clip_data['start'] and s['end']<=clip_data['end']]
         
+        portrait_path_final = None # Initialize
         # Create portrait (vertical) version
         if generate_both_formats:
-            print(f"  - Creating portrait (9:16) version...")
+            logging.info(f"  - Creating portrait (9:16) version for highlight {i}...")
             portrait = crop_to_aspect_ratio(sub, target_aspect=(9, 16))
             
             if subs:
+                logging.debug(f"    Adding subtitles to portrait clip {i}")
                 portrait = portrait.fl(
                     lambda get_frame, t: add_subtitles_pillow(
                         get_frame(t),
@@ -453,10 +510,10 @@ def process_video_for_highlights(source, num_clips=5, output_dir=None, generate_
                     keep_duration=True
                 )
             
-            portrait_path = os.path.join(portrait_dir, f"highlight_{i}.mp4")
+            portrait_path_final = os.path.join(portrait_dir, f"highlight_{i}.mp4")
             temp_portrait_path = os.path.join(portrait_dir, f"temp_highlight_{i}.mp4")
             
-            # Write portrait video
+            logging.info(f"    Attempting to save temporary portrait file: {temp_portrait_path}")
             portrait.write_videofile(
                 temp_portrait_path,
                 codec="libx264",
@@ -464,19 +521,28 @@ def process_video_for_highlights(source, num_clips=5, output_dir=None, generate_
                 temp_audiofile=os.path.join(output_dir, f"temp-audio-portrait-{i}.m4a"),
                 remove_temp=True,
                 fps=video.fps if video.fps else 24,
-                verbose=False
+                verbose=False,
+                logger=None # Suppress moviepy console output
             )
+            logging.info(f"    Successfully saved temporary portrait file: {temp_portrait_path}")
             
             # Convert to compatible format
-            convert_to_compatible_format(temp_portrait_path, portrait_path)
+            portrait_path_final = convert_to_compatible_format(temp_portrait_path, portrait_path_final)
             if os.path.exists(temp_portrait_path):
                 os.remove(temp_portrait_path)
+            
+            if portrait_path_final and os.path.exists(portrait_path_final):
+                logging.info(f"    Successfully created final portrait clip: {portrait_path_final}")
+            else:
+                logging.warning(f"    Failed to create/find final portrait clip for highlight {i} at expected path: {portrait_path_final or os.path.join(portrait_dir, f'highlight_{i}.mp4')}")
+                portrait_path_final = None # Ensure it's None if failed
         
         # Create landscape (16:9) version
-        print(f"  - Creating landscape (16:9) version...")
+        logging.info(f"  - Creating landscape (16:9) version for highlight {i}...")
         landscape = crop_to_aspect_ratio(sub, target_aspect=(16, 9))
         
         if subs:
+            logging.debug(f"    Adding subtitles to landscape clip {i}")
             landscape = landscape.fl(
                 lambda get_frame, t: add_subtitles_pillow(
                     get_frame(t),
@@ -487,10 +553,10 @@ def process_video_for_highlights(source, num_clips=5, output_dir=None, generate_
                 keep_duration=True
             )
         
-        landscape_path = os.path.join(landscape_dir, f"highlight_{i}.mp4")
+        landscape_path_final = os.path.join(landscape_dir, f"highlight_{i}.mp4")
         temp_landscape_path = os.path.join(landscape_dir, f"temp_highlight_{i}.mp4")
         
-        # Write landscape video
+        logging.info(f"    Attempting to save temporary landscape file: {temp_landscape_path}")
         landscape.write_videofile(
             temp_landscape_path,
             codec="libx264",
@@ -498,23 +564,39 @@ def process_video_for_highlights(source, num_clips=5, output_dir=None, generate_
             temp_audiofile=os.path.join(output_dir, f"temp-audio-landscape-{i}.m4a"),
             remove_temp=True,
             fps=video.fps if video.fps else 24,
-            verbose=False
+            verbose=False,
+            logger=None # Suppress moviepy console output
         )
+        logging.info(f"    Successfully saved temporary landscape file: {temp_landscape_path}")
         
         # Convert to compatible format
-        convert_to_compatible_format(temp_landscape_path, landscape_path)
+        landscape_path_final = convert_to_compatible_format(temp_landscape_path, landscape_path_final)
         if os.path.exists(temp_landscape_path):
             os.remove(temp_landscape_path)
+
+        if landscape_path_final and os.path.exists(landscape_path_final):
+            logging.info(f"    Successfully created final landscape clip: {landscape_path_final}")
+        else:
+            logging.warning(f"    Failed to create/find final landscape clip for highlight {i} at expected path: {landscape_path_final or os.path.join(landscape_dir, f'highlight_{i}.mp4')}")
+            landscape_path_final = None # Ensure it's None if failed
         
         # Add to results - use landscape as default for metadata
-        results.append({**clip, 'file': landscape_path, 'portrait_file': portrait_path if generate_both_formats else None})
+        results.append({**clip_data, 'file': landscape_path_final, 'portrait_file': portrait_path_final})
     
     video.close()
-    
+
+    num_portrait_results = sum(1 for r in results if r.get('portrait_file'))
+    if generate_both_formats and num_portrait_results == 0 and top:
+        logging.error(f"No portrait highlight clips were successfully generated and saved from {len(top)} candidates. Check logs for individual segment processing details.")
+    elif generate_both_formats and top:
+        logging.info(f"Successfully generated {num_portrait_results} portrait clips out of {len(top)} candidates.")
+
     # Save metadata
     meta_path = os.path.join(output_dir, "highlights.json")
+    logging.info(f"Attempting to save highlights metadata to: {meta_path}")
     with open(meta_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
+    logging.info(f"Successfully saved highlights metadata to: {meta_path}")
     
     # Extract frames from highlights if requested
     extracted_frames = []
@@ -535,9 +617,12 @@ def process_video_for_highlights(source, num_clips=5, output_dir=None, generate_
         
         # Save extracted frames metadata
         frames_meta_path = os.path.join(output_dir, "frames.json")
+        logging.info(f"Attempting to save frames metadata to: {frames_meta_path}")
         with open(frames_meta_path, 'w', encoding='utf-8') as f:
             json.dump(extracted_frames, f, ensure_ascii=False, indent=2)
+        logging.info(f"Successfully saved frames metadata to: {frames_meta_path}")
     
+    logging.debug(f"Exiting process_video_for_highlights, returning {len(results)} highlights")
     return results
 
 
@@ -565,13 +650,13 @@ def merge_highlights_with_transitions(clips_dir, output_file, transition_duratio
         format_dir = clips_dir  # Fallback to main directory if format dir doesn't exist
         
     # Get all highlight clips and sort them
-    highlight_files = sorted([f for f in os.listdir(format_dir) 
+    highlight_files = sorted([f for f in os.listdir(format_dir)
                             if f.startswith('highlight_') and f.endswith('.mp4')])
     if not highlight_files:
-        print(f"No highlight clips found in {format_dir}")
+        logging.warning(f"No highlight clips found in {format_dir} for merging.")
         return None
     
-    print(f"Merging {format} highlight clips into a single video...")
+    logging.info(f"Merging {len(highlight_files)} {format} highlight clips from {format_dir} into a single video: {output_file}")
     video_clips = []
     try:
         # Load and prepare clips with fade effects
@@ -597,20 +682,27 @@ def merge_highlights_with_transitions(clips_dir, output_file, transition_duratio
             temp_audiofile="temp-audio-merge.m4a",
             remove_temp=True,
             fps=video_clips[0].fps,
-            verbose=False
+            verbose=False,
+            logger=None # Suppress moviepy console output
         )
+        logging.info(f"Temporary merged file saved to {temp_output}")
         
         # Convert to fully compatible format
-        convert_to_compatible_format(temp_output, output_file)
+        final_merged_path = convert_to_compatible_format(temp_output, output_file)
         if os.path.exists(temp_output):
             os.remove(temp_output)
+        
+        if final_merged_path and os.path.exists(final_merged_path):
+            logging.info(f"Successfully merged and converted highlights to {final_merged_path}")
+        else:
+            logging.error(f"Failed to create final merged video at {output_file}")
             
     finally:
         # Clean up
         for clip in video_clips:
             clip.close()
             
-    return output_file if os.path.exists(output_file) else None
+    return final_merged_path if final_merged_path and os.path.exists(final_merged_path) else None
 
 
 def parse_arguments():
@@ -659,53 +751,65 @@ if __name__ == "__main__":
     if args.file:
         video_source = args.file
         if not os.path.exists(video_source):
-            print(f"Error: File not found: {video_source}")
+            logging.error(f"Error: File not found: {video_source}")
             sys.exit(1)
     elif args.url:
         # Download video from URL
+        logging.info(f"URL provided, attempting download: {args.url}")
         video_source = download_from_url(args.url)
         if not video_source:
-            print(f"Error: Failed to download video from URL: {args.url}")
+            logging.error(f"Error: Failed to download video from URL: {args.url}")
             sys.exit(1)
+        logging.info(f"Video downloaded to: {video_source}")
     
     # Create output directory
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     # Process video
+    logging.info(f"Starting video processing for: {video_source}")
     try:
         highlights = process_video_for_highlights(
-            video_source, 
-            NUM_CLIPS, 
-            OUTPUT_DIR, 
+            video_source,
+            NUM_CLIPS,
+            OUTPUT_DIR,
             GENERATE_BOTH_FORMATS,
             EXTRACT_FRAMES
         )
-        print(json.dumps(highlights, ensure_ascii=False, indent=2))
+        logging.debug(f"Highlights data: {json.dumps(highlights, ensure_ascii=False, indent=2)}") # Changed to debug
         
         # Merge if requested
         if MERGE_CLIPS and highlights:
+            logging.info("Merging highlight clips as requested.")
             # Merge landscape clips
             if GENERATE_BOTH_FORMATS or args.formats == 'landscape':
                 landscape_merged_path = os.path.join(OUTPUT_DIR, "merged_highlights_landscape.mp4")
-                merge_highlights_with_transitions(OUTPUT_DIR, landscape_merged_path, format="landscape")
-                print(f"\nMerged landscape video saved to: {landscape_merged_path}")
-            
+                merged_landscape = merge_highlights_with_transitions(OUTPUT_DIR, landscape_merged_path, format="landscape")
+                if merged_landscape:
+                    logging.info(f"Merged landscape video saved to: {merged_landscape}")
+                else:
+                    logging.warning(f"Failed to merge landscape clips. Check logs for {OUTPUT_DIR}/landscape.")
+
             # Merge portrait clips if both formats are generated
             if GENERATE_BOTH_FORMATS or args.formats == 'portrait':
                 portrait_merged_path = os.path.join(OUTPUT_DIR, "merged_highlights_portrait.mp4")
-                merge_highlights_with_transitions(OUTPUT_DIR, portrait_merged_path, format="portrait")
-                print(f"Merged portrait video saved to: {portrait_merged_path}")
-        
-        print("\nProcessing complete!")
-        print(f"Highlight clips saved to: {OUTPUT_DIR}")
+                merged_portrait = merge_highlights_with_transitions(OUTPUT_DIR, portrait_merged_path, format="portrait")
+                if merged_portrait:
+                    logging.info(f"Merged portrait video saved to: {merged_portrait}")
+                else:
+                    logging.warning(f"Failed to merge portrait clips. Check logs for {OUTPUT_DIR}/portrait.")
+        elif MERGE_CLIPS and not highlights:
+            logging.warning("Merging requested, but no highlights were generated to merge.")
+
+        logging.info("Processing complete!")
+        logging.info(f"Highlight clips saved to: {OUTPUT_DIR}")
         
         if EXTRACT_FRAMES:
-            print(f"Screenshot frames saved to:")
-            print(f"  - Instagram frames: {OUTPUT_DIR}/instagram_frames/")
+            logging.info(f"Screenshot frames saved to:")
+            logging.info(f"  - Instagram frames: {os.path.join(OUTPUT_DIR, 'instagram_frames/')}")
             if GENERATE_BOTH_FORMATS or args.formats == 'landscape':
-                print(f"  - Landscape frames: {OUTPUT_DIR}/landscape_frames/")
+                logging.info(f"  - Landscape frames: {os.path.join(OUTPUT_DIR, 'landscape_frames/')}")
             if GENERATE_BOTH_FORMATS or args.formats == 'portrait':
-                print(f"  - Portrait frames: {OUTPUT_DIR}/portrait_frames/")
+                logging.info(f"  - Portrait frames: {os.path.join(OUTPUT_DIR, 'portrait_frames/')}")
     except Exception as e:
-        print(f"Error processing video: {e}")
-        sys.exit(1) 
+        logging.error(f"Unhandled error during main processing: {e}", exc_info=True) # Added exc_info
+        sys.exit(1)

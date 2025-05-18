@@ -1,0 +1,65 @@
+[
+  {
+    "highlight_index": 1,
+    "frame_index": 1,
+    "format": "landscape",
+    "time": 0.85,
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/landscape_frames/highlight_01_frame_01.jpg"
+  },
+  {
+    "highlight_index": 1,
+    "frame_index": 1,
+    "format": "portrait",
+    "time": 0.85,
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/portrait_frames/highlight_01_frame_01.jpg"
+  },
+  {
+    "highlight_index": 1,
+    "frame_index": 1,
+    "format": "instagram",
+    "time": 0.85,
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/instagram_frames/highlight_01_frame_01.jpg"
+  },
+  {
+    "highlight_index": 1,
+    "frame_index": 2,
+    "format": "landscape",
+    "time": 1.7,
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/landscape_frames/highlight_01_frame_02.jpg"
+  },
+  {
+    "highlight_index": 1,
+    "frame_index": 2,
+    "format": "portrait",
+    "time": 1.7,
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/portrait_frames/highlight_01_frame_02.jpg"
+  },
+  {
+    "highlight_index": 1,
+    "frame_index": 2,
+    "format": "instagram",
+    "time": 1.7,
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/instagram_frames/highlight_01_frame_02.jpg"
+  },
+  {
+    "highlight_index": 1,
+    "frame_index": 3,
+    "format": "landscape",
+    "time": 2.55,
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/landscape_frames/highlight_01_frame_03.jpg"
+  },
+  {
+    "highlight_index": 1,
+    "frame_index": 3,
+    "format": "portrait",
+    "time": 2.55,
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/portrait_frames/highlight_01_frame_03.jpg"
+  },
+  {
+    "highlight_index": 1,
+    "frame_index": 3,
+    "format": "instagram",
+    "time": 2.55,
+    "file": "/Users/daurenzhunussov/hackathon/abdku/skillset-final/highlight-website/outputs/text_model_outputs/b9e9a289-8fca-4929-8c7a-ce617e7a4936/instagram_frames/highlight_01_frame_03.jpg"
+  }
+]
