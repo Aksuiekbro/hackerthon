@@ -8,18 +8,38 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useLanguage } from "@/components/language-provider"
 import { X } from "lucide-react"
-import { useState } from "react"
-import type { WizardFormData, CustomOptions, ModelType } from "@/types/wizard" // Added WizardFormData
+import { useState, useEffect } from "react"
+import type { WizardFormData, CustomOptions, ModelType } from "@/types/wizard"
 
 type CustomizationProps = {
-  formData: WizardFormData // Changed from options and modelType
-  updateFormData: (updatedFields: Partial<WizardFormData>) => void // Changed from setOptions
+  formData: WizardFormData
+  updateFormData: (updatedFields: Partial<WizardFormData>) => void
 }
 
 export function Customization({ formData, updateFormData }: CustomizationProps) {
   const { t } = useLanguage()
   const [keywordInput, setKeywordInput] = useState("")
-  const { customOptions, selectedModelType, numClips, maxDurationYt } = formData // Destructure for easier access
+  const { customOptions, selectedModelType, numClips, maxDurationYt } = formData
+  
+  // Initialize customOptions if it doesn't exist
+  useEffect(() => {
+    if (!customOptions) {
+      updateFormData({
+        customOptions: {
+          keywords: [],
+          font: "Inter",
+          transition: "none"
+        }
+      });
+    }
+  }, [customOptions, updateFormData]);
+
+  // Create a safe version of customOptions to use throughout the component
+  const safeCustomOptions: CustomOptions = customOptions || {
+    keywords: [],
+    font: "Inter",
+    transition: "none"
+  };
 
   const fontOptions = [
     { value: "Inter", label: "Inter" },
@@ -39,11 +59,12 @@ export function Customization({ formData, updateFormData }: CustomizationProps) 
 
   const addKeyword = (e: React.FormEvent) => {
     e.preventDefault()
-    if (keywordInput.trim() !== "" && !customOptions.keywords.includes(keywordInput.trim())) {
+    // Use safeCustomOptions instead of customOptions
+    if (keywordInput.trim() !== "" && !safeCustomOptions.keywords.includes(keywordInput.trim())) {
       updateFormData({
         customOptions: {
-          ...customOptions,
-          keywords: [...customOptions.keywords, keywordInput.trim()],
+          ...safeCustomOptions,
+          keywords: [...safeCustomOptions.keywords, keywordInput.trim()],
         },
       })
       setKeywordInput("")
@@ -51,10 +72,11 @@ export function Customization({ formData, updateFormData }: CustomizationProps) 
   }
 
   const removeKeyword = (keyword: string) => {
+    // Use safeCustomOptions instead of customOptions
     updateFormData({
       customOptions: {
-        ...customOptions,
-        keywords: customOptions.keywords.filter((k) => k !== keyword),
+        ...safeCustomOptions,
+        keywords: safeCustomOptions.keywords.filter((k) => k !== keyword),
       },
     })
   }
@@ -67,10 +89,7 @@ export function Customization({ formData, updateFormData }: CustomizationProps) 
       </div>
 
       <div className="space-y-6">
-        {/* Keywords section - assuming 'context' was a typo and meant 'text' or similar for keyword relevance */}
-        {/* If 'context' is a specific model type, this logic remains. Otherwise, adjust as needed. */}
-        {/* For this task, we focus on the new 'text' model specific settings. */}
-        {selectedModelType === "text" && ( // Changed from modelType to selectedModelType
+        {selectedModelType === "text" && (
           <div className="space-y-2">
             <Label htmlFor="keywords">{t("custom.keywords")}</Label>
             <form onSubmit={addKeyword} className="flex space-x-2">
@@ -85,7 +104,8 @@ export function Customization({ formData, updateFormData }: CustomizationProps) 
               </button>
             </form>
             <div className="flex flex-wrap gap-2 mt-2">
-              {customOptions.keywords.map((keyword) => (
+              {/* Use safeCustomOptions instead of customOptions */}
+              {safeCustomOptions.keywords.map((keyword) => (
                 <Badge key={keyword} variant="secondary" className="px-2 py-1">
                   {keyword}
                   <button
@@ -97,7 +117,8 @@ export function Customization({ formData, updateFormData }: CustomizationProps) 
                   </button>
                 </Badge>
               ))}
-              {customOptions.keywords.length === 0 && <p className="text-sm text-muted-foreground">No keywords added yet</p>}
+              {/* Use safeCustomOptions instead of customOptions */}
+              {safeCustomOptions.keywords.length === 0 && <p className="text-sm text-muted-foreground">No keywords added yet</p>}
             </div>
           </div>
         )}
@@ -138,7 +159,8 @@ export function Customization({ formData, updateFormData }: CustomizationProps) 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="font">{t("custom.font")}</Label>
-            <Select value={customOptions.font} onValueChange={(value) => updateFormData({ customOptions: { ...customOptions, font: value } })}>
+            {/* Use safeCustomOptions instead of customOptions */}
+            <Select value={safeCustomOptions.font} onValueChange={(value) => updateFormData({ customOptions: { ...safeCustomOptions, font: value } })}>
               <SelectTrigger id="font">
                 <SelectValue placeholder="Select font" />
               </SelectTrigger>
@@ -154,7 +176,8 @@ export function Customization({ formData, updateFormData }: CustomizationProps) 
 
           <div className="space-y-2">
             <Label htmlFor="transition">{t("custom.transition")}</Label>
-            <Select value={customOptions.transition} onValueChange={(value) => updateFormData({ customOptions: { ...customOptions, transition: value } })}>
+            {/* Use safeCustomOptions instead of customOptions */}
+            <Select value={safeCustomOptions.transition} onValueChange={(value) => updateFormData({ customOptions: { ...safeCustomOptions, transition: value } })}>
               <SelectTrigger id="transition">
                 <SelectValue placeholder="Select transition style" />
               </SelectTrigger>
