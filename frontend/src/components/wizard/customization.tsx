@@ -9,17 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLanguage } from "@/components/language-provider"
 import { X } from "lucide-react"
 import { useState } from "react"
-import type { CustomOptions, ModelType } from "@/types/wizard"
+import type { WizardFormData, CustomOptions, ModelType } from "@/types/wizard" // Added WizardFormData
 
 type CustomizationProps = {
-  options: CustomOptions
-  setOptions: (options: CustomOptions) => void
-  modelType: ModelType
+  formData: WizardFormData // Changed from options and modelType
+  updateFormData: (updatedFields: Partial<WizardFormData>) => void // Changed from setOptions
 }
 
-export function Customization({ options, setOptions, modelType }: CustomizationProps) {
+export function Customization({ formData, updateFormData }: CustomizationProps) {
   const { t } = useLanguage()
   const [keywordInput, setKeywordInput] = useState("")
+  const { customOptions, selectedModelType, numClips, maxDurationYt } = formData // Destructure for easier access
 
   const fontOptions = [
     { value: "Inter", label: "Inter" },
@@ -39,19 +39,23 @@ export function Customization({ options, setOptions, modelType }: CustomizationP
 
   const addKeyword = (e: React.FormEvent) => {
     e.preventDefault()
-    if (keywordInput.trim() !== "" && !options.keywords.includes(keywordInput.trim())) {
-      setOptions({
-        ...options,
-        keywords: [...options.keywords, keywordInput.trim()],
+    if (keywordInput.trim() !== "" && !customOptions.keywords.includes(keywordInput.trim())) {
+      updateFormData({
+        customOptions: {
+          ...customOptions,
+          keywords: [...customOptions.keywords, keywordInput.trim()],
+        },
       })
       setKeywordInput("")
     }
   }
 
   const removeKeyword = (keyword: string) => {
-    setOptions({
-      ...options,
-      keywords: options.keywords.filter((k) => k !== keyword),
+    updateFormData({
+      customOptions: {
+        ...customOptions,
+        keywords: customOptions.keywords.filter((k) => k !== keyword),
+      },
     })
   }
 
@@ -63,7 +67,10 @@ export function Customization({ options, setOptions, modelType }: CustomizationP
       </div>
 
       <div className="space-y-6">
-        {modelType === "context" && (
+        {/* Keywords section - assuming 'context' was a typo and meant 'text' or similar for keyword relevance */}
+        {/* If 'context' is a specific model type, this logic remains. Otherwise, adjust as needed. */}
+        {/* For this task, we focus on the new 'text' model specific settings. */}
+        {selectedModelType === "text" && ( // Changed from modelType to selectedModelType
           <div className="space-y-2">
             <Label htmlFor="keywords">{t("custom.keywords")}</Label>
             <form onSubmit={addKeyword} className="flex space-x-2">
@@ -78,7 +85,7 @@ export function Customization({ options, setOptions, modelType }: CustomizationP
               </button>
             </form>
             <div className="flex flex-wrap gap-2 mt-2">
-              {options.keywords.map((keyword) => (
+              {customOptions.keywords.map((keyword) => (
                 <Badge key={keyword} variant="secondary" className="px-2 py-1">
                   {keyword}
                   <button
@@ -90,15 +97,48 @@ export function Customization({ options, setOptions, modelType }: CustomizationP
                   </button>
                 </Badge>
               ))}
-              {options.keywords.length === 0 && <p className="text-sm text-muted-foreground">No keywords added yet</p>}
+              {customOptions.keywords.length === 0 && <p className="text-sm text-muted-foreground">No keywords added yet</p>}
             </div>
           </div>
+        )}
+
+        {/* Conditional UI for Text Model */}
+        {selectedModelType === 'text' && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="num-clips">Number of Clips per Platform</Label>
+              <Input
+                id="num-clips"
+                type="number"
+                min="1"
+                value={numClips || 3}
+                onChange={(e) => {
+                  updateFormData({ numClips: parseInt(e.target.value, 10) || 1 });
+                }}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="max-duration-yt">Max YouTube Short Duration (seconds)</Label>
+              <Input
+                id="max-duration-yt"
+                type="number"
+                min="10"
+                max="60"
+                value={maxDurationYt || 59}
+                onChange={(e) => {
+                  updateFormData({ maxDurationYt: parseInt(e.target.value, 10) || 59 });
+                }}
+                className="w-full"
+              />
+            </div>
+          </>
         )}
 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="font">{t("custom.font")}</Label>
-            <Select value={options.font} onValueChange={(value) => setOptions({ ...options, font: value })}>
+            <Select value={customOptions.font} onValueChange={(value) => updateFormData({ customOptions: { ...customOptions, font: value } })}>
               <SelectTrigger id="font">
                 <SelectValue placeholder="Select font" />
               </SelectTrigger>
@@ -114,7 +154,7 @@ export function Customization({ options, setOptions, modelType }: CustomizationP
 
           <div className="space-y-2">
             <Label htmlFor="transition">{t("custom.transition")}</Label>
-            <Select value={options.transition} onValueChange={(value) => setOptions({ ...options, transition: value })}>
+            <Select value={customOptions.transition} onValueChange={(value) => updateFormData({ customOptions: { ...customOptions, transition: value } })}>
               <SelectTrigger id="transition">
                 <SelectValue placeholder="Select transition style" />
               </SelectTrigger>

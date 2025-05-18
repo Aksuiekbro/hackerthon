@@ -7,6 +7,7 @@ import subprocess
 import json
 import random
 from math import ceil
+from pathlib import Path # Add this import
 
 def get_clip_duration(filepath):
     """Gets the duration of a video file using ffprobe."""
@@ -30,8 +31,9 @@ def get_clip_duration(filepath):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate short-form video clips compatible with various platforms")
-    parser.add_argument("--url", type=str, help="URL to download video from")
-    parser.add_argument("--file", type=str, help="Path to local video file")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--url", type=str, help="URL of the video to process.")
+    group.add_argument("--input_file_path", type=str, help="Local path to the video file to process.")
     parser.add_argument("--output", type=str, default="short_clips", help="Output directory")
     parser.add_argument("--clips", type=int, default=3, help="Number of distinct clips to generate per platform (if content allows)")
     parser.add_argument("--max-duration", type=int, default=59, help="Maximum duration in seconds for YouTube (default: 59)")
@@ -41,11 +43,6 @@ def main():
                         help="Format type: youtube (up to 59s), instagram (15s), or both (default: youtube)")
     
     args = parser.parse_args()
-    
-    if not args.url and not args.file:
-        print("Error: Either --url or --file must be provided")
-        parser.print_help()
-        sys.exit(1)
     
     platform_configs = []
     if args.format == "youtube" or args.format == "both":
@@ -69,13 +66,19 @@ def main():
 
 
     print("\n===== EXTRACTING INITIAL HIGHLIGHT SEGMENTS =====")
-    cmd = ["python3", "process_video.py"]
+    # Get the directory of the current script (process_shorts.py)
+    current_script_dir = Path(__file__).resolve().parent
+    # Construct the path to process_video.py
+    path_to_process_video_script = current_script_dir / "process_video.py"
+
+    cmd = ["python3", str(path_to_process_video_script)]
     if args.url:
         cmd.extend(["--url", args.url])
-    elif args.file:
-        cmd.extend(["--file", args.file])
+    elif args.input_file_path:
+        abs_input_file_path = os.path.abspath(args.input_file_path)
+        cmd.extend(["--file", abs_input_file_path])
     cmd.extend([
-        "--output", args.output,
+        "--output", args.output, # This is the output for process_video.py, which becomes an input dir for process_shorts
         "--clips", str(int(num_initial_highlights_to_extract)), 
         "--formats", "both",
         "--frames",

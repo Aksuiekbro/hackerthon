@@ -1,13 +1,14 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useLanguage } from "@/components/language-provider"
-import type { ModelType } from "@/types/wizard"
-import { Brain, Activity } from "lucide-react"
+import type { ModelType, WizardFormData } from "@/types/wizard" // Added WizardFormData
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import React from "react" // Added React for Dispatch and SetStateAction
 
 type ModelSelectionProps = {
   selectedModel: ModelType
-  setSelectedModel: (model: ModelType) => void
+  setSelectedModel: React.Dispatch<React.SetStateAction<WizardFormData>> // Changed type
 }
 
 export function ModelSelection({ selectedModel, setSelectedModel }: ModelSelectionProps) {
@@ -17,68 +18,35 @@ export function ModelSelection({ selectedModel, setSelectedModel }: ModelSelecti
     <div className="space-y-6">
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">{t("wizard.step2")}</h2>
-        <p className="text-muted-foreground">Choose which AI model to use for generating your highlights</p>
+        <p className="text-muted-foreground">Choose which AI model to use for generating your highlights. You can choose between Motion Model and Text Model.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card
-          className={`cursor-pointer transition-colors ${
-            selectedModel === "context" ? "border-primary bg-primary/5" : "hover:border-primary/50"
-          }`}
-          onClick={() => setSelectedModel("context")}
-        >
-          <CardHeader className="space-y-1">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">{t("model.context")}</CardTitle>
-              <div
-                className={`rounded-full p-2 ${
-                  selectedModel === "context" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                }`}
-              >
-                <Brain className="h-5 w-5" />
-              </div>
-            </div>
-            <CardDescription>{t("model.contextDesc")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-sm text-muted-foreground list-disc space-y-1 pl-5">
-              <li>Great for speeches, interviews, and presentations</li>
-              <li>Analyses audio transcripts to find key moments</li>
-              <li>Can be guided by specific keywords</li>
-              <li>Best for content-focused videos</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card
-          className={`cursor-pointer transition-colors ${
-            selectedModel === "motion" ? "border-primary bg-primary/5" : "hover:border-primary/50"
-          }`}
-          onClick={() => setSelectedModel("motion")}
-        >
-          <CardHeader className="space-y-1">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">{t("model.motion")}</CardTitle>
-              <div
-                className={`rounded-full p-2 ${
-                  selectedModel === "motion" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                }`}
-              >
-                <Activity className="h-5 w-5" />
-              </div>
-            </div>
-            <CardDescription>{t("model.motionDesc")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-sm text-muted-foreground list-disc space-y-1 pl-5">
-              <li>Perfect for sports, dances, and action videos</li>
-              <li>Detects moments with high motion or activity</li>
-              <li>Identifies exciting visual events</li>
-              <li>Best for action-packed content</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
+      <RadioGroup
+        defaultValue={selectedModel}
+        onValueChange={(value: string) => {
+          setSelectedModel(prev => ({ ...prev, selectedModelType: value as ModelType })) // Changed to updater function
+        }}
+        className="space-y-2"
+      >
+        <div className="flex items-center space-x-2 rounded-md border p-4 hover:border-primary/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 transition-colors">
+          <RadioGroupItem value="motion" id="motion-model" />
+          <Label htmlFor="motion-model" className="flex-1 cursor-pointer">
+            <span className="font-semibold">Motion Model</span>
+            <p className="text-sm text-muted-foreground">
+              Perfect for sports, dances, and action videos. Detects moments with high motion or activity.
+            </p>
+          </Label>
+        </div>
+        <div className="flex items-center space-x-2 rounded-md border p-4 hover:border-primary/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 transition-colors">
+          <RadioGroupItem value="text" id="text-model" />
+          <Label htmlFor="text-model" className="flex-1 cursor-pointer">
+            <span className="font-semibold">Text Model</span>
+            <p className="text-sm text-muted-foreground">
+              Great for speeches, interviews, and presentations. Analyses audio transcripts to find key moments.
+            </p>
+          </Label>
+        </div>
+      </RadioGroup>
     </div>
   )
 }

@@ -2,31 +2,41 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react" // Added useEffect
 import { useLanguage } from "@/components/language-provider"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import type { VideoData } from "@/types/wizard"
-import { Upload, Youtube, X } from "lucide-react"
+import { Upload, Youtube, X, Loader2 } from "lucide-react" // Added Loader2
 import { useToast } from "@/hooks/use-toast"
+import type { WizardFormData } from "@/types/wizard" // Changed VideoData to WizardFormData
+import { uploadVideoFileAPI, FileUploadResponse } from "@/api/processing" // Added API import
 
 type VideoInputProps = {
-  videoData: VideoData | null
-  setVideoData: (data: VideoData | null) => void
+  formData: WizardFormData
+  updateFormData: (data: Partial<WizardFormData>) => void
 }
 
-export function VideoInput({ videoData, setVideoData }: VideoInputProps) {
+export function VideoInput({ formData, updateFormData }: VideoInputProps) {
   const { t } = useLanguage()
   const { toast } = useToast()
-  const [activeTab, setActiveTab] = useState<"upload" | "youtube">("upload")
-  const [youtubeUrl, setYoutubeUrl] = useState("")
+  const [activeTab, setActiveTab] = useState<"upload" | "url">("upload") // Changed "youtube" to "url"
+  const [localVideoUrl, setLocalVideoUrl] = useState(formData.videoUrl || "")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Sync localVideoUrl with formData on initial load or when formData.videoUrl changes externally
+  useEffect(() => {
+    setLocalVideoUrl(formData.videoUrl || "");
+  }, [formData.videoUrl]);
+
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       if (!file.type.includes("video/")) {
@@ -37,14 +47,24 @@ export function VideoInput({ videoData, setVideoData }: VideoInputProps) {
         })
         return
       }
-
-      const fileUrl = URL.createObjectURL(file)
-      setVideoData({
-        type: "file",
-        file,
-        url: fileUrl,
-        name: file.name,
-      })
+      setSelectedFile(file);
+      setLocalVideoUrl(''); // Clear URL if a file is chosen
+      updateFormData({ videoUrl: undefined, serverFilePath: undefined }); // Clear previous
+      setIsUploading(true);
+      setUploadError(null);
+      try {
+        const response = await uploadVideoFileAPI(file);
+        updateFormData({ serverFilePath: response.server_file_path, videoUrl: undefined });
+        toast({ title: "File Uploaded", description: file.name });
+      } catch (error: any) {
+        console.error("File upload failed:", error);
+        const errorMsg = error.response?.data?.detail || error.message || "File upload failed. Please try again.";
+        setUploadError(errorMsg);
+        updateFormData({ serverFilePath: undefined }); // Clear server path on error
+        toast({ title: "Upload Failed", description: errorMsg, variant: "destructive" });
+      } finally {
+        setIsUploading(false);
+      }
     }
   }
 
@@ -57,7 +77,7 @@ export function VideoInput({ videoData, setVideoData }: VideoInputProps) {
     setIsDragging(false)
   }
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
 
@@ -71,70 +91,89 @@ export function VideoInput({ videoData, setVideoData }: VideoInputProps) {
         })
         return
       }
-
-      const fileUrl = URL.createObjectURL(file)
-      setVideoData({
-        type: "file",
-        file,
-        url: fileUrl,
-        name: file.name,
-      })
+      setSelectedFile(file);
+      setLocalVideoUrl(''); // Clear URL if a file is chosen
+      updateFormData({ videoUrl: undefined, serverFilePath: undefined }); // Clear previous
+      setIsUploading(true);
+      setUploadError(null);
+      try {
+        const response = await uploadVideoFileAPI(file);
+        updateFormData({ serverFilePath: response.server_file_path, videoUrl: undefined });
+        toast({ title: "File Uploaded", description: file.name });
+      } catch (error: any) {
+        console.error("File upload failed:", error);
+        const errorMsg = error.response?.data?.detail || error.message || "File upload failed. Please try again.";
+        setUploadError(errorMsg);
+        updateFormData({ serverFilePath: undefined }); // Clear server path on error
+        toast({ title: "Upload Failed", description: errorMsg, variant: "destructive" });
+      } finally {
+        setIsUploading(false);
+      }
     }
   }
 
-  const handleYoutubeSubmit = () => {
-    // Very basic validation
-    if (!youtubeUrl.includes("youtube.com/") && !youtubeUrl.includes("youtu.be/")) {
-      toast({
-        title: "Invalid YouTube URL",
-        description: "Please enter a valid YouTube URL",
-        variant: "destructive",
-      })
-      return
+  const handleUrlInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUrl = e.target.value;
+    setLocalVideoUrl(newUrl);
+    // Debounce or submit on button click? For now, update formData directly.
+    // Consider adding a submit button for URL if direct update is too aggressive.
+    updateFormData({ videoUrl: newUrl, serverFilePath: undefined });
+    setSelectedFile(null); // Clear selected file if URL is being typed
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""; // Clear file input
     }
+  };
 
-    setVideoData({
-      type: "youtube",
-      url: youtubeUrl,
-      name: "YouTube Video",
-    })
-  }
 
   const clearVideo = () => {
-    setVideoData(null)
-    setYoutubeUrl("")
+    updateFormData({ videoUrl: undefined, serverFilePath: undefined })
+    setLocalVideoUrl("")
+    setSelectedFile(null)
+    setUploadError(null)
+    setIsUploading(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
+  }
+
+  const getFileNameFromPath = (path?: string) => {
+    if (!path) return "Uploaded Video";
+    return path.split(/[\\/]/).pop() || "Uploaded Video";
   }
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">{t("wizard.step1")}</h2>
-        <p className="text-muted-foreground">Upload a video file or provide a YouTube link</p>
+        <p className="text-muted-foreground">Upload a video file or provide a video URL</p>
       </div>
 
-      {videoData ? (
+      {formData.videoUrl || formData.serverFilePath || selectedFile ? (
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {videoData.type === "file" ? (
-                  <div className="relative h-16 w-24 overflow-hidden rounded">
-                    <video src={videoData.url} className="h-full w-full object-cover" />
+                {formData.serverFilePath || selectedFile ? (
+                  <div className="flex h-16 w-24 items-center justify-center rounded bg-muted">
+                    <Upload className="h-8 w-8 text-muted-foreground" />
                   </div>
                 ) : (
                   <div className="flex h-16 w-24 items-center justify-center rounded bg-muted">
-                    <Youtube className="h-8 w-8 text-muted-foreground" />
+                    <Youtube className="h-8 w-8 text-muted-foreground" /> {/* Or a generic URL icon */}
                   </div>
                 )}
                 <div>
-                  <p className="font-medium">{videoData.name}</p>
+                  <p className="font-medium">
+                    {formData.serverFilePath
+                      ? getFileNameFromPath(formData.serverFilePath)
+                      : selectedFile
+                      ? selectedFile.name
+                      : formData.videoUrl || "Video URL"}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    {videoData.type === "file"
-                      ? `${Math.round((videoData.file.size / 1024 / 1024) * 100) / 100} MB`
-                      : "YouTube URL"}
+                    {formData.serverFilePath || selectedFile
+                      ? selectedFile ? `${Math.round((selectedFile.size / 1024 / 1024) * 100) / 100} MB` : "Uploaded File"
+                      : "Video URL"}
                   </p>
                 </div>
               </div>
@@ -142,18 +181,27 @@ export function VideoInput({ videoData, setVideoData }: VideoInputProps) {
                 <X className="h-4 w-4" />
               </Button>
             </div>
+            {isUploading && (
+              <div className="mt-2 flex items-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading {selectedFile?.name}...
+              </div>
+            )}
+            {uploadError && (
+              <p className="mt-2 text-sm text-destructive">{uploadError}</p>
+            )}
           </CardContent>
         </Card>
       ) : (
         <Tabs
           defaultValue="upload"
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as "upload" | "youtube")}
+          onValueChange={(value) => setActiveTab(value as "upload" | "url")}
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="upload">{t("wizard.upload")}</TabsTrigger>
-            <TabsTrigger value="youtube">{t("wizard.youtube")}</TabsTrigger>
+            <TabsTrigger value="url">{t("wizard.videoUrl", "Video URL")}</TabsTrigger>
           </TabsList>
           <TabsContent value="upload" className="pt-4">
             <div
@@ -173,24 +221,28 @@ export function VideoInput({ videoData, setVideoData }: VideoInputProps) {
                 accept="video/*"
                 onChange={handleFileChange}
                 className="hidden"
-                id="video-upload"
+                id="video-upload-input" // Changed id to avoid conflict if any
+                disabled={isUploading}
               />
-              <Button onClick={() => fileInputRef.current?.click()}>{t("wizard.selectFile")}</Button>
+              <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {t("wizard.selectFile")}
+              </Button>
             </div>
           </TabsContent>
-          <TabsContent value="youtube" className="pt-4">
+          <TabsContent value="url" className="pt-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="youtube-url">YouTube URL</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="youtube-url"
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                  />
-                  <Button onClick={handleYoutubeSubmit}>Submit</Button>
-                </div>
+                <Label htmlFor="video-url-input">Video URL</Label>
+                <Input
+                  id="video-url-input"
+                  placeholder="e.g., https://example.com/video.mp4"
+                  value={localVideoUrl}
+                  onChange={handleUrlInputChange}
+                  disabled={isUploading}
+                />
+                {/* Removed the explicit submit button for URL, updates on change */}
+                {/* If a submit button is desired, it can be added back here */}
               </div>
             </div>
           </TabsContent>

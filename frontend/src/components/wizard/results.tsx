@@ -2,47 +2,46 @@
 
 import { useLanguage } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Copy, Download, Loader2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Loader2, Download, AlertCircle } from "lucide-react"
+import { WizardFormData } from "@/types/wizard" // Adjusted import path
 
-type ResultsProps = {
-  isProcessing: boolean
-  isComplete: boolean
-  result: any | null
+interface ResultsStepProps {
+  formData: WizardFormData
 }
 
-export function Results({ isProcessing, isComplete, result }: ResultsProps) {
+export function ResultsStep({ formData }: ResultsStepProps) {
   const { t } = useLanguage()
-  const { toast } = useToast()
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
-  const copyToClipboard = (text: string, type: "description" | "hashtags") => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: `${type === "description" ? "Description" : "Hashtags"} copied`,
-      description: "Text has been copied to your clipboard",
-    })
-  }
-
-  if (isProcessing) {
+  if (formData.isProcessing) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
         <h3 className="text-lg font-medium">{t("results.processing")}</h3>
         <p className="text-muted-foreground mt-2 text-center">
-          This may take a few moments. We're extracting the best moments from your video.
+          Processing your video, please wait... This may take a few moments.
         </p>
       </div>
     )
   }
 
-  if (!isComplete || !result) {
+  if (formData.processingError) {
+    return (
+      <Alert variant="destructive" className="my-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error Processing Video</AlertTitle>
+        <AlertDescription>{formData.processingError}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (!formData.generatedFilePaths || formData.generatedFilePaths.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <h3 className="text-lg font-medium">{t("wizard.step5")}</h3>
+        <h3 className="text-lg font-medium">No Files Generated</h3>
         <p className="text-muted-foreground mt-2 text-center">
-          Click the "Generate Highlights" button to process your video
+          No files were generated, or processing is not yet complete. Please ensure previous steps are complete or try again.
         </p>
       </div>
     )
@@ -53,54 +52,60 @@ export function Results({ isProcessing, isComplete, result }: ResultsProps) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">{t("wizard.step5")}</h2>
         <p className="text-muted-foreground">
-          Your highlights are ready! Preview, download, and use generated content.
+          Your generated files are ready! Preview and download them below.
         </p>
       </div>
 
-      <div className="space-y-6">
-        <div className="rounded-lg overflow-hidden border">
-          <video controls className="w-full aspect-video" poster={result.videoUrl}>
-            <source src={result.videoUrl} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {formData.generatedFilePaths.map((filePath) => {
+          const fileUrl = `${API_URL}/static/outputs/${filePath}`
+          const fileName = filePath.substring(filePath.lastIndexOf("/") + 1)
+          const extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase()
 
-        <div className="flex justify-center">
-          <Button className="w-full sm:w-auto">
-            <Download className="mr-2 h-4 w-4" /> {t("results.download")}
-          </Button>
-        </div>
-
-        <Tabs defaultValue="description" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="description">{t("results.description")}</TabsTrigger>
-            <TabsTrigger value="hashtags">{t("results.hashtags")}</TabsTrigger>
-          </TabsList>
-          <TabsContent value="description" className="p-4 border rounded-md mt-2">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-medium">{t("results.description")}</h3>
-              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(result.description, "description")}>
-                <Copy className="h-4 w-4 mr-1" /> Copy
-              </Button>
-            </div>
-            <p className="text-sm">{result.description}</p>
-          </TabsContent>
-          <TabsContent value="hashtags" className="p-4 border rounded-md mt-2">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-medium">{t("results.hashtags")}</h3>
-              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(result.hashtags.join(" "), "hashtags")}>
-                <Copy className="h-4 w-4 mr-1" /> Copy
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {result.hashtags.map((tag: string) => (
-                <Badge key={tag} variant="secondary">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+          if (["mp4", "mov", "webm", "ogv"].includes(extension)) {
+            return (
+              <div key={filePath} className="p-4 border rounded-lg shadow-sm bg-card">
+                <h3 className="text-md font-semibold mb-2 truncate" title={fileName}>{fileName}</h3>
+                <div className="aspect-video bg-black rounded overflow-hidden mb-2">
+                  <video controls width="100%" src={fileUrl} className="w-full h-full object-contain">
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <a href={fileUrl} download={fileName}>
+                    <Download className="mr-2 h-4 w-4" /> Download Video
+                  </a>
+                </Button>
+              </div>
+            )
+          } else if (["jpg", "jpeg", "png", "gif", "webp"].includes(extension)) {
+            return (
+              <div key={filePath} className="p-4 border rounded-lg shadow-sm bg-card">
+                <h3 className="text-md font-semibold mb-2 truncate" title={fileName}>{fileName}</h3>
+                <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded overflow-hidden mb-2">
+                  <img src={fileUrl} alt={fileName} className="w-full h-full object-contain" />
+                </div>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <a href={fileUrl} download={fileName}>
+                    <Download className="mr-2 h-4 w-4" /> Download Image
+                  </a>
+                </Button>
+              </div>
+            )
+          } else {
+            return (
+              <div key={filePath} className="p-4 border rounded-lg shadow-sm bg-card">
+                <h3 className="text-md font-semibold mb-2 truncate" title={fileName}>{fileName}</h3>
+                <p className="text-sm text-muted-foreground mb-2">Unsupported file type for preview.</p>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <a href={fileUrl} download={fileName}>
+                    <Download className="mr-2 h-4 w-4" /> Download {fileName}
+                  </a>
+                </Button>
+              </div>
+            )
+          }
+        })}
       </div>
     </div>
   )

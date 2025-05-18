@@ -1,7 +1,7 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException
 import shutil
 import os
-from ..ml_core.highlight import extract_highlights_mock # Import the mock function, changed to relative
+from ml_core.highlight import extract_highlights_mock # Import the mock function, changed to relative
 
 router = APIRouter()
 

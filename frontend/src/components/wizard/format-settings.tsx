@@ -3,18 +3,17 @@
 import { useLanguage } from "@/components/language-provider"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import type { AspectRatio, Duration } from "@/types/wizard"
+import type { WizardFormData } from "@/types/wizard" // Import WizardFormData
 import { Smartphone, Monitor, Clock } from "lucide-react"
 
 type FormatSettingsProps = {
-  aspectRatio: AspectRatio
-  setAspectRatio: (ratio: AspectRatio) => void
-  duration: Duration
-  setDuration: (duration: Duration) => void
+  formData: WizardFormData
+  updateFormData: (updatedFields: Partial<WizardFormData>) => void
 }
 
-export function FormatSettings({ aspectRatio, setAspectRatio, duration, setDuration }: FormatSettingsProps) {
+export function FormatSettings({ formData, updateFormData }: FormatSettingsProps) {
   const { t } = useLanguage()
+  const { aspectRatio, duration, selectedModelType, targetFormat } = formData
 
   return (
     <div className="space-y-6">
@@ -28,7 +27,7 @@ export function FormatSettings({ aspectRatio, setAspectRatio, duration, setDurat
           <Label>{t("format.aspectRatio")}</Label>
           <RadioGroup
             value={aspectRatio}
-            onValueChange={(value) => setAspectRatio(value as AspectRatio)}
+            onValueChange={(value) => updateFormData({ aspectRatio: value as WizardFormData['aspectRatio'] })}
             className="grid grid-cols-2 gap-4"
           >
             <div>
@@ -65,7 +64,7 @@ export function FormatSettings({ aspectRatio, setAspectRatio, duration, setDurat
           <Label>{t("format.duration")}</Label>
           <RadioGroup
             value={duration}
-            onValueChange={(value) => setDuration(value as Duration)}
+            onValueChange={(value) => updateFormData({ duration: value as WizardFormData['duration'] })}
             className="grid grid-cols-3 gap-4"
           >
             <div>
@@ -111,6 +110,48 @@ export function FormatSettings({ aspectRatio, setAspectRatio, duration, setDurat
             </div>
           </RadioGroup>
         </div>
+
+        {selectedModelType === 'text' && (
+          <div className="space-y-4">
+            <Label htmlFor="target-format">Target Platform(s)</Label>
+            <RadioGroup
+              id="target-format"
+              value={targetFormat || "both"}
+              onValueChange={(value: 'youtube' | 'instagram' | 'both') => {
+                updateFormData({ targetFormat: value });
+              }}
+              className="grid grid-cols-3 gap-4"
+            >
+              <div>
+                <RadioGroupItem value="youtube" id="format-youtube" className="peer sr-only" />
+                <Label
+                  htmlFor="format-youtube"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <p className="font-medium leading-none">YouTube</p>
+                </Label>
+              </div>
+              <div>
+                <RadioGroupItem value="instagram" id="format-instagram" className="peer sr-only" />
+                <Label
+                  htmlFor="format-instagram"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <p className="font-medium leading-none">Instagram</p>
+                </Label>
+              </div>
+              <div>
+                <RadioGroupItem value="both" id="format-both" className="peer sr-only" />
+                <Label
+                  htmlFor="format-both"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <p className="font-medium leading-none">Both</p>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
       </div>
     </div>
   )

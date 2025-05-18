@@ -12,9 +12,7 @@ import certifi
 import cv2
 from scenedetect import open_video, SceneManager
 from scenedetect.detectors import ContentDetector
-from moviepy.editor import VideoFileClip
-from moviepy.editor import vfx
-from moviepy.video.fx.crop import crop
+from moviepy.editor import VideoFileClip, vfx
 from PIL import Image, ImageDraw, ImageFont
 
 # Fix SSL certificate verification issue on macOS
@@ -207,14 +205,14 @@ def crop_to_aspect_ratio(clip, target_aspect=(9, 16)):
         x_center = original_width / 2
         x1 = x_center - target_width / 2
         x2 = x_center + target_width / 2
-        return crop(clip, x1=int(x1), x2=int(x2))
+        return vfx.crop(clip, x1=int(x1), x2=int(x2))
     elif original_aspect_ratio < target_aspect_ratio:
         # Video is too tall - crop height
         target_height = original_width / target_aspect_ratio
         y_center = original_height / 2
         y1 = y_center - target_height / 2
         y2 = y_center + target_height / 2
-        return crop(clip, y1=int(y1), y2=int(y2))
+        return vfx.crop(clip, y1=int(y1), y2=int(y2))
     return clip
 
 

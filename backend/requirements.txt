@@ -5,8 +5,12 @@ sqlalchemy
 supabase
 python-multipart
 # Add other dependencies as needed, e.g., for ML:
-# openai 
-# moviepy
-# Pillow (for image processing if needed)
-# numpy
+librosa
+moviepy==1.0.3
+numpy
+opencv-python
+openai-whisper
+Pillow
+scenedetect[opencv]
+yt-dlp
 # pandas

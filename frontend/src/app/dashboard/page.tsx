@@ -7,10 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 // import { useAuth } from "@/hooks/use-auth"
 import { useLanguage } from "@/components/language-provider"
-import { Download, Eye, Trash2, Loader2, Plus } from "lucide-react"
+import { Download, Eye, Trash2, Loader2, Plus, Video } from "lucide-react"
 import Link from "next/link"
-import Video from "lucide-react" // Declaring the Video variable
-
 type Project = {
   id: string
   title: string
