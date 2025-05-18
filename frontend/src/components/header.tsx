@@ -8,14 +8,16 @@ import { MoonIcon, SunIcon, Globe, User } from "lucide-react"
 import ActualNextThemes from "next-themes" // Assuming next-themes default exports an object
 import { useLanguage } from "./language-provider"
 import { useEffect, useState } from "react"
-import { useAuth } from "@/hooks/use-auth"
+// import { useAuth } from "@/hooks/use-auth"
 
 export default function Header() {
   // Assuming useTheme is a property on the default export
   const { setTheme } = ActualNextThemes.useTheme()
   const { language, setLanguage, t } = useLanguage()
   const pathname = usePathname()
-  const { user, signOut } = useAuth()
+  // const { user, signOut } = useAuth()
+  const user = null; // Temporarily set user to null
+  const signOut = () => {}; // Temporarily set signOut to a no-op
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function Header() {
               <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {user ? (
+          {/* {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -90,11 +92,11 @@ export default function Header() {
                 <DropdownMenuItem onClick={signOut}>{t("header.logout")}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
+          ) : ( */}
             <Button asChild variant="outline" size="sm">
               <Link href="/login">{t("header.login")}</Link>
             </Button>
-          )}
+          {/* )} */}
         </div>
       </div>
     </header>

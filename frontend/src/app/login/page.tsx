@@ -9,12 +9,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/hooks/use-auth"
+// import { useAuth } from "@/hooks/use-auth"
 import { useLanguage } from "@/components/language-provider"
 import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
-  const { signIn, loading } = useAuth()
+  // const { signIn, loading } = useAuth()
+  const signIn = async (email, password) => { console.log("signIn mock", email, password); }; // Temporarily set signIn to a mock
+  const loading = false; // Temporarily set loading to false
   const { t } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()

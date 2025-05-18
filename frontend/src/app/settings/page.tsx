@@ -11,14 +11,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { useAuth } from "@/hooks/use-auth"
+// import { useAuth } from "@/hooks/use-auth"
 import { useLanguage } from "@/components/language-provider"
 import { useTheme } from "next-themes"
 import { Loader2, Save } from "lucide-react"
 import type { AspectRatio, Duration, ModelType } from "@/types/wizard"
 
 export default function SettingsPage() {
-  const { user, loading } = useAuth()
+  // const { user, loading } = useAuth()
+  const user = null; // Temporarily set user to null
+  const loading = false; // Temporarily set loading to false
   const { language, setLanguage, t } = useLanguage()
   const { theme, setTheme } = useTheme()
   const router = useRouter()
