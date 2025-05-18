@@ -13,6 +13,26 @@ type User = {
   image?: string
 }
 
+/**
+ * Utility to map a Supabase user object to our local User interface,
+ * guaranteeing that name and email are always non-null strings.
+ * If name is missing, falls back to email or "Anonymous User".
+ * If email is missing, falls back to "unknown@example.com".
+ */
+function mapSupabaseUser(currentUser: any): User {
+  return {
+    id: currentUser.id,
+    name:
+      currentUser.user_metadata?.name ||
+      currentUser.user_metadata?.full_name ||
+      currentUser.user_metadata?.display_name ||
+      currentUser.email ||
+      "Anonymous User",
+    email: currentUser.email || "unknown@example.com",
+    image: currentUser.user_metadata?.avatar_url || undefined,
+  }
+}
+
 type AuthContextType = {
   user: User | null
   signIn: (email: string, password: string) => Promise<void>
@@ -38,6 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Simulate auth state initialization
+    // If using Supabase, you would do:
+    // const { data: { user: currentUser } } = await supabase.auth.getUser();
+    // if (currentUser) setUser(mapSupabaseUser(currentUser));
     setLoading(false)
   }, [])
 

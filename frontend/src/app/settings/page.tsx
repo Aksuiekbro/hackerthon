@@ -15,7 +15,16 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useLanguage } from "@/components/language-provider"
 import { useTheme } from "next-themes"
 import { Loader2, Save } from "lucide-react"
-import type { AspectRatio, Duration, ModelType } from "@/types/wizard"
+import {
+  type AspectRatio,
+  type Duration,
+  type ModelType,
+  isModelType,
+  isAspectRatio,
+  isDuration,
+  type SupportedLanguage,
+  isSupportedLanguage,
+} from "@/types/wizard"
 
 export default function SettingsPage() {
   // const { user, loading } = useAuth()
@@ -36,8 +45,8 @@ export default function SettingsPage() {
     if (!loading && !user) {
       router.push("/login?redirect=/settings")
     } else if (user) {
-      setName(user.name)
-      setEmail(user.email)
+      setName(user.name ?? '')
+      setEmail(user.email ?? '')
     }
   }, [user, loading, router])
 
@@ -133,7 +142,14 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>{t("settings.language")}</Label>
-                    <Select value={language} onValueChange={(value) => setLanguage(value as "en" | "ru")}>
+                    <Select
+                      value={language}
+                      onValueChange={(value) => {
+                        if (isSupportedLanguage(value)) {
+                          setLanguage(value)
+                        }
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select language" />
                       </SelectTrigger>
@@ -164,7 +180,11 @@ export default function SettingsPage() {
                     <Label>{t("settings.defaultModel")}</Label>
                     <RadioGroup
                       value={defaultModel}
-                      onValueChange={(value) => setDefaultModel(value as ModelType)}
+                      onValueChange={(value) => {
+                        if (isModelType(value)) {
+                          setDefaultModel(value)
+                        }
+                      }}
                       className="grid grid-cols-2 gap-4"
                     >
                       <div>
@@ -197,7 +217,11 @@ export default function SettingsPage() {
                     <Label>{t("settings.defaultAspect")}</Label>
                     <RadioGroup
                       value={defaultAspect}
-                      onValueChange={(value) => setDefaultAspect(value as AspectRatio)}
+                      onValueChange={(value) => {
+                        if (isAspectRatio(value)) {
+                          setDefaultAspect(value)
+                        }
+                      }}
                       className="grid grid-cols-2 gap-4"
                     >
                       <div>
@@ -230,7 +254,11 @@ export default function SettingsPage() {
                     <Label>{t("settings.defaultDuration")}</Label>
                     <RadioGroup
                       value={defaultDuration}
-                      onValueChange={(value) => setDefaultDuration(value as Duration)}
+                      onValueChange={(value) => {
+                        if (isDuration(value)) {
+                          setDefaultDuration(value)
+                        }
+                      }}
                       className="grid grid-cols-3 gap-4"
                     >
                       <div>

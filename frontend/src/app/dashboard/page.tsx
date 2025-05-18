@@ -9,14 +9,16 @@ import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/components/language-provider"
 import { Download, Eye, Trash2, Loader2, Plus, Video } from "lucide-react"
 import Link from "next/link"
+import type { ModelType, AspectRatio, Duration } from "@/types/wizard"
+
 type Project = {
   id: string
   title: string
   date: string
   thumbnail: string
-  modelType: "context" | "motion"
-  aspectRatio: "9:16" | "16:9"
-  duration: string
+  modelType: ModelType
+  aspectRatio: AspectRatio
+  duration: Duration
 }
 
 export default function DashboardPage() {

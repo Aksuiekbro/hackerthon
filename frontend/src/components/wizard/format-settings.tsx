@@ -3,7 +3,7 @@
 import { useLanguage } from "@/components/language-provider"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import type { WizardFormData } from "@/types/wizard" // Import WizardFormData
+import { type WizardFormData, isAspectRatio, isDuration, type AspectRatio, type Duration } from "@/types/wizard" // Import WizardFormData and guards
 import { Smartphone, Monitor, Clock } from "lucide-react"
 
 type FormatSettingsProps = {
@@ -27,7 +27,11 @@ export function FormatSettings({ formData, updateFormData }: FormatSettingsProps
           <Label>{t("format.aspectRatio")}</Label>
           <RadioGroup
             value={aspectRatio}
-            onValueChange={(value) => updateFormData({ aspectRatio: value as WizardFormData['aspectRatio'] })}
+            onValueChange={(value) => {
+              if (isAspectRatio(value)) {
+                updateFormData({ aspectRatio: value })
+              }
+            }}
             className="grid grid-cols-2 gap-4"
           >
             <div>
@@ -64,7 +68,11 @@ export function FormatSettings({ formData, updateFormData }: FormatSettingsProps
           <Label>{t("format.duration")}</Label>
           <RadioGroup
             value={duration}
-            onValueChange={(value) => updateFormData({ duration: value as WizardFormData['duration'] })}
+            onValueChange={(value) => {
+              if (isDuration(value)) {
+                updateFormData({ duration: value })
+              }
+            }}
             className="grid grid-cols-3 gap-4"
           >
             <div>

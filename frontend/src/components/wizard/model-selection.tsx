@@ -1,13 +1,13 @@
 "use client"
 
 import { useLanguage } from "@/components/language-provider"
-import type { ModelType, WizardFormData } from "@/types/wizard" // Added WizardFormData
+import { type ModelType, type WizardFormData, isModelType } from "@/types/wizard" // Added WizardFormData and isModelType
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import React from "react" // Added React for Dispatch and SetStateAction
 
 type ModelSelectionProps = {
-  selectedModel: ModelType
+  selectedModel: ModelType | undefined
   setSelectedModel: React.Dispatch<React.SetStateAction<WizardFormData>> // Changed type
 }
 
@@ -24,7 +24,9 @@ export function ModelSelection({ selectedModel, setSelectedModel }: ModelSelecti
       <RadioGroup
         defaultValue={selectedModel}
         onValueChange={(value: string) => {
-          setSelectedModel(prev => ({ ...prev, selectedModelType: value as ModelType })) // Changed to updater function
+          if (isModelType(value)) {
+            setSelectedModel(prev => ({ ...prev, selectedModelType: value }))
+          }
         }}
         className="space-y-2"
       >

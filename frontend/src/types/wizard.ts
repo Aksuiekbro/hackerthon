@@ -5,7 +5,7 @@ export type VideoData = {
   file?: File
 }
 
-export type ModelType = "motion" | "text"
+export type ModelType = "motion" | "text" | "context"
 
 export type AspectRatio = "9:16" | "16:9"
 
@@ -31,4 +31,26 @@ export interface WizardFormData {
   generatedFilePaths?: string[];
   processingError?: string | null;
   isProcessing?: boolean;
+}
+
+// Type Guards
+export const MODEL_TYPES: ModelType[] = ["motion", "text", "context"];
+export function isModelType(value: any): value is ModelType {
+  return MODEL_TYPES.includes(value);
+}
+
+export const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9"];
+export function isAspectRatio(value: any): value is AspectRatio {
+  return ASPECT_RATIOS.includes(value);
+}
+
+export const DURATIONS: Duration[] = ["15s", "1m", "full"];
+export function isDuration(value: any): value is Duration {
+  return DURATIONS.includes(value);
+}
+
+export type SupportedLanguage = "en" | "ru";
+export const SUPPORTED_LANGUAGES: SupportedLanguage[] = ["en", "ru"];
+export function isSupportedLanguage(value: any): value is SupportedLanguage {
+  return SUPPORTED_LANGUAGES.includes(value);
 }
